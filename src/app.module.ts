@@ -1,6 +1,6 @@
-var dotenvExpand = require('dotenv-expand');
+const dotenvExpand = require('dotenv-expand');
 export const myENV = require('dotenv').config();
-var parse = require('pg-connection-string').parse;
+const parse = require('pg-connection-string').parse;
 export const myvalue = dotenvExpand.expand(myENV).parsed;
 export const connectionOptions = parse(process.env.POSTGRES_URL);
 import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
@@ -19,11 +19,10 @@ import { APP_GUARD } from '@nestjs/core';
 import { EventsModule } from './events/events.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { CronJobsModule } from './cron-jobs/cron-jobs.module';
-import { ScheduleModule } from "@nestjs/schedule";
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
-
     ConfigModule.forRoot(),
     TypeOrmModule.forRoot({ ...typeOrmConfig, autoLoadEntities: true }),
 
@@ -51,8 +50,7 @@ import { ScheduleModule } from "@nestjs/schedule";
     AuthModule,
     EventsModule,
     PaymentModule,
-    CronJobsModule
-
+    CronJobsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -60,21 +58,23 @@ import { ScheduleModule } from "@nestjs/schedule";
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
-    }
+    },
   ],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(LoggerMiddleware)
+      .apply(LoggerMiddleware) // Apply the middleware
       .exclude(
+        { path: 'auth/login', method: RequestMethod.POST },
         {
-          path: '/api', method: RequestMethod.ALL
+          path: '/api',
+          method: RequestMethod.ALL,
         },
         { path: '/auth/sign-up', method: RequestMethod.POST },
-        { path: '/auth/login', method: RequestMethod.POST },
         { path: '/auth/forgot-password', method: RequestMethod.POST },
-        { path: "/", method: RequestMethod.ALL }
-      ).forRoutes('*');
+        { path: '/', method: RequestMethod.ALL },
+      ) // Exclude /auth/login route
+      .forRoutes('*'); // Apply to all other routes
   }
 }
