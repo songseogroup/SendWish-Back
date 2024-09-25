@@ -11,7 +11,7 @@ import * as jwt from 'jsonwebtoken';
 export class LoggerMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     try {
-      const authToken = req.headers.authorization;
+      const authToken = req.headers.authorization.split(' ')[1];
       console.log(authToken);
       const verify = jwt.verify(authToken, process.env.SECRET_KEY);
       if (!verify) {
@@ -19,7 +19,6 @@ export class LoggerMiddleware implements NestMiddleware {
       }
       console.log(verify);
       req['user'] = verify;
-
       next();
     } catch (e) {
       console.log('ERROR IN MIDDLEWARE', e);
