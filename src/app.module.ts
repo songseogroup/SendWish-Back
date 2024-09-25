@@ -66,8 +66,10 @@ import { ScheduleModule } from "@nestjs/schedule";
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(LoggerMiddleware)
+      .apply(LoggerMiddleware) // Apply the middleware
       .exclude(
+        { path: 'auth/login', method: RequestMethod.POST },
+        { path: 'auth/login', method: RequestMethod.GET },
         {
           path: '/api', method: RequestMethod.ALL
         },
@@ -75,6 +77,7 @@ export class AppModule {
         { path: '/auth/login', method: RequestMethod.POST },
         { path: '/auth/forgot-password', method: RequestMethod.POST },
         { path: "/", method: RequestMethod.ALL }
-      ).forRoutes('*');
+      ) // Exclude /auth/login route
+      .forRoutes('*'); // Apply to all other routes
   }
 }
