@@ -20,6 +20,8 @@ import { EventsModule } from './events/events.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { CronJobsModule } from './cron-jobs/cron-jobs.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ChatGptService } from './chatgpt/chatgpt.service'; // Import the service
+import { ChatgptModule } from './chatgpt/Chatgpt.module';
 
 @Module({
   imports: [
@@ -51,10 +53,12 @@ import { ScheduleModule } from '@nestjs/schedule';
     EventsModule,
     PaymentModule,
     CronJobsModule,
+    ChatgptModule
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    ChatGptService,
     {
       provide: APP_GUARD,
       useClass: RolesGuard,

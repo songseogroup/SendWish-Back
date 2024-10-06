@@ -6,26 +6,35 @@ export class ChatGptService {
   private openai: OpenAI;
 
   constructor() {
+    const apiKey = process.env.OPENAI_API_KEY;
+    console.log('OpenAI API Key:', apiKey);
     this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY, // Add your OpenAI API key in the .env file
+      organization: "org-CqWhbUsGc9CQM2Z7LzrE0bro",
+      // project: "$PROJECT_ID",
+      apiKey: apiKey, // Ensure your .env file contains this key
     });
   }
 
   async generateMessage(recipient: string, occasion: string): Promise<string> {
-    const prompt = `Write a personalized message for ${recipient} on the occasion of ${occasion}. The message should be between 100 and 150 words.`;
+    const prompt = `Write a personalized message for ${recipient} on the occasion of ${occasion}. The message should be between 100 and 150 words.dont add my name`;
 
     try {
-      const response = await this.openai.completions.create({
-        model: 'text-davinci-003',
-        prompt,
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo', // Use a more recent model if available
+        messages: [{ role: 'user', content: prompt }],
         max_tokens: 150,
         temperature: 0.7, // Adjust for creativity
       });
 
-      return response.choices[0].text.trim();
+      // Ensure the response has choices and return the text
+      if (response.choices && response.choices.length > 0) {
+        return response.choices[0].message.content.trim();
+      } else {
+        throw new Error('No message generated.');
+      }
     } catch (error) {
       console.error('Error generating message:', error);
-      throw new Error('Could not generate message.');
+      throw new Error('Could not generate message. Please try again later.');
     }
   }
 }
