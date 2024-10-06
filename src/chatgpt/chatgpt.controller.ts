@@ -1,7 +1,7 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { GenerateMessageDto } from './dto/generate-message.dto'; // Update the import path if necessary
-import { ChatGptService } from './chatgpt.service';
+import { ChatGptService } from './Chatgpt.service';
 
 @Controller('chatgpt')
 export class ChatGptController {

@@ -20,7 +20,7 @@ import { EventsModule } from './events/events.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { CronJobsModule } from './cron-jobs/cron-jobs.module';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ChatGptService } from './Chatgpt/Chatgpt.service'; // Import the service
+import { ChatGptService } from './chatgpt/Chatgpt.service'; // Import the service
 import { ChatgptModule } from './chatgpt/Chatgpt.module';
 
 @Module({
