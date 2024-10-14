@@ -14,7 +14,7 @@ export class ChatGptService {
     });
   }
 
-  async generateMessage(recipient: string, occasion: string, relation: string): Promise<string> {
+  async generateMessage(recipient: string, occasion: string, relation: string): Promise<object> {
     const prompt = `Write a personalized message for my ${recipient} who is my ${relation}, for his/her  ${occasion} occasion. The message should be between 100 and 150 words dont add regard at the end by me also dont add [Your Name] at the end please `;
 
     try {
@@ -31,7 +31,7 @@ export class ChatGptService {
           message: response.choices[0].message.content.trim()
         };
     
-        return JSON.stringify(resultObject);
+        return resultObject;
       } else {
         throw new Error('No message generated.');
       }
