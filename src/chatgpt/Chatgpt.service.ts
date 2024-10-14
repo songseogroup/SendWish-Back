@@ -15,11 +15,11 @@ export class ChatGptService {
   }
 
   async generateMessage(recipient: string, occasion: string, relation: string): Promise<string> {
-    const prompt = `Write a personalized message for my ${recipient} who is my ${relation}, for his/her  ${occasion} occasion. The message should be between 100 and 150 words dont add regard at the end by me `;
+    const prompt = `Write a personalized message for my ${recipient} who is my ${relation}, for his/her  ${occasion} occasion. The message should be between 100 and 150 words dont add regard at the end by me also dont add [Your Name] at the end please `;
 
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo', // Use a more recent model if available
+        model: 'gpt-4-turbo', // Use a more recent model if available
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 150,
         temperature: 0.7, // Adjust for creativity
