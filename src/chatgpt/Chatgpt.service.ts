@@ -15,7 +15,7 @@ export class ChatGptService {
   }
 
   async generateMessage(recipient: string, occasion: string, relation: string): Promise<string> {
-    const prompt = `Write a personalized message for my ${recipient} who is my ${relation}, on the occasion of ${occasion}. The message should be between 100 and 150 words dont add my name`;
+    const prompt = `Write a personalized message for my ${recipient} who is my ${relation}, for his/her  ${occasion} occasion. The message should be between 100 and 150 words dont add regard at the end by me `;
 
     try {
       const response = await this.openai.chat.completions.create({
