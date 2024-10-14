@@ -27,7 +27,11 @@ export class ChatGptService {
 
       // Ensure the response has choices and return the text
       if (response.choices && response.choices.length > 0) {
-        return response.choices[0].message.content.trim();
+        const resultObject = {
+          message: response.choices[0].message.content.trim()
+        };
+    
+        return JSON.stringify(resultObject);
       } else {
         throw new Error('No message generated.');
       }
