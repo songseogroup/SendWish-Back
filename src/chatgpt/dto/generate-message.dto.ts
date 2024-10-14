@@ -8,4 +8,8 @@ export class GenerateMessageDto {
   @IsString()
   @IsNotEmpty() // Ensures the occasion is not an empty string
   occasion: string;
+
+  @IsString()
+  @IsNotEmpty() // Ensures the occasion is not an empty string
+  relation: string;
 }

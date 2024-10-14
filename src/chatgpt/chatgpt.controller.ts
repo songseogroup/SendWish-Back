@@ -12,7 +12,7 @@ export class ChatGptController {
   @ApiResponse({ status: 200, description: 'Message generated successfully.' }) // Successful response
   @ApiResponse({ status: 400, description: 'Invalid input.' }) // Bad request response
   async generateMessage(@Body() generateMessageDto: GenerateMessageDto) {
-    const { recipient, occasion } = generateMessageDto; // Destructure from DTO
-    return await this.chatGptService.generateMessage(recipient, occasion);
+    const { recipient, occasion , relation} = generateMessageDto; // Destructure from DTO
+    return await this.chatGptService.generateMessage(recipient, occasion,relation);
   }
 }

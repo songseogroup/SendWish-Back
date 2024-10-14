@@ -10,13 +10,12 @@ export class ChatGptService {
     console.log('OpenAI API Key:', apiKey);
     this.openai = new OpenAI({
       organization: "org-CqWhbUsGc9CQM2Z7LzrE0bro",
-      // project: "$PROJECT_ID",
       apiKey: apiKey, // Ensure your .env file contains this key
     });
   }
 
-  async generateMessage(recipient: string, occasion: string): Promise<string> {
-    const prompt = `Write a personalized message for ${recipient} on the occasion of ${occasion}. The message should be between 100 and 150 words.dont add my name`;
+  async generateMessage(recipient: string, occasion: string, relation: string): Promise<string> {
+    const prompt = `Write a personalized message for my ${recipient} who is my ${relation}, on the occasion of ${occasion}. The message should be between 100 and 150 words dont add my name`;
 
     try {
       const response = await this.openai.chat.completions.create({
