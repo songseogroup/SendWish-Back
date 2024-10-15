@@ -75,6 +75,7 @@ export class AppModule {
           path: '/api',
           method: RequestMethod.ALL,
         },
+        {path:'/auth/google',method:RequestMethod.POST},
         { path: '/auth/sign-up', method: RequestMethod.POST },
         { path: '/auth/forgot-password', method: RequestMethod.POST },
         { path: '/', method: RequestMethod.ALL },
