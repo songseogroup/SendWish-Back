@@ -336,67 +336,67 @@ export class AuthService {
   }
 
   async googleLogin(token: string) {
-    // try {
-    //   // Verify the Google token using OAuth2Client
-    //   const ticket = await this.client.verifyIdToken({
-    //     idToken: token,
-    //     audience: process.env.GOOGLE_CLIENT_ID,  // Specify your Google client ID here
-    //   });
+    try {
+      // Verify the Google token using OAuth2Client
+      const ticket = await this.client.verifyIdToken({
+        idToken: token,
+        audience: process.env.GOOGLE_CLIENT_ID,  // Specify your Google client ID here
+      });
 
-    //   const payload = ticket.getPayload();
-    //   const email = payload?.email;
-    //   const name = payload?.name;
+      const payload = ticket.getPayload();
+      const email = payload?.email;
+      const name = payload?.name;
 
-    //   if (!email) {
-    //     throw new Error('Google login failed, no email found.');
-    //   }
+      if (!email) {
+        throw new Error('Google login failed, no email found.');
+      }
 
-    //   // Check if the user exists in your database
-    //   let user = await this.usersService.findByEmail(email);
+      // Check if the user exists in your database
+      let user = await this.usersService.findByEmail(email);
 
-    //   // If user does not exist, create a new one
-    //   if (!user) {
-    //     const userData: CreateUserDto = {
-    //       email,
-    //       username: name || 'Google User',
-    //       password: null, // Password is not required for Google users
-    //       verified: true, // Automatically mark as verified
-    //     };
+      // If user does not exist, create a new one
+      if (!user) {
+        const userData: CreateUserDto = {
+          email,
+          username: name || 'Google User',
+          password: null, // Password is not required for Google users
+          verified: true, // Automatically mark as verified
+        };
 
-    //     user = await this.usersService.create(userData);
-    //   }
+        user = await this.usersService.create(userData);
+      }
 
-    //   // Generate tokens for the user
-    //   const accessToken = jwt.sign(
-    //     { userEmail: user.email, userId: user.id },
-    //     process.env.SECRET_KEY,
-    //     { expiresIn: '1d' },
-    //   );
+      // Generate tokens for the user
+      const accessToken = jwt.sign(
+        { userEmail: user.email, userId: user.id },
+        process.env.SECRET_KEY,
+        { expiresIn: '1d' },
+      );
 
-    //   const refreshToken = jwt.sign(
-    //     { userEmail: user.email, userId: user.id },
-    //     process.env.SECRET_REFRESH_KEY,
-    //     { expiresIn: '1d' },
-    //   );
+      const refreshToken = jwt.sign(
+        { userEmail: user.email, userId: user.id },
+        process.env.SECRET_REFRESH_KEY,
+        { expiresIn: '1d' },
+      );
 
-    //   // Save tokens to the user
-    //   user.accessToken = accessToken;
-    //   user.refreshToken = refreshToken;
-    //   await this.usersService.update(user.id, user);
+      // Save tokens to the user
+      user.accessToken = accessToken;
+      user.refreshToken = refreshToken;
+      await this.usersService.update(user.id, user);
 
-    //   return {
-    //     message: 'SUCCESSFULLY LOGGED IN WITH GOOGLE',
-    //     user,
-    //     accessToken,
-    //     refreshToken,
-    //     status: HttpStatus.OK,
-    //   };
-    // } catch (error) {
-    //   throw new HttpException(
-    //     { status: HttpStatus.UNAUTHORIZED, error: error.message },
-    //     HttpStatus.UNAUTHORIZED,
-    //   );
-    // }
+      return {
+        message: 'SUCCESSFULLY LOGGED IN WITH GOOGLE',
+        user,
+        accessToken,
+        refreshToken,
+        status: HttpStatus.OK,
+      };
+    } catch (error) {
+      throw new HttpException(
+        { status: HttpStatus.UNAUTHORIZED, error: error.message },
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
   }
 
   findAll() {
