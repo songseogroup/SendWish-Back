@@ -8,9 +8,11 @@ import {
   Delete,
   Req,
   HttpStatus,
-  UseInterceptors,ClassSerializerInterceptor,
+  UseInterceptors,
+  ClassSerializerInterceptor,
   HttpException,
-  HttpCode
+  HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
@@ -18,8 +20,9 @@ import { UpdateAuthDto } from './dto/update-auth.dto';
 import { userDto } from './dto/user-login.dto';
 import { UsersService } from '../users/users.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
-import { Request,Response } from 'express';
+import { Request } from 'express';
 import { ApiResponse } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 @Controller('auth')
 @UseInterceptors(ClassSerializerInterceptor)
 export class AuthController {
@@ -103,7 +106,17 @@ export class AuthController {
     return this.authService.resetPassword(updateAuthDto.email);
   }
 
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {
+    // This route will be redirected to Google's OAuth page
+  }
 
+  @Get('google/redirect')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthRedirect(@Req() req) {
+    return this.authService.googleLogin(req);
+  }
   @Get()
   findAll() {
     return this.authService.findAll();

@@ -14,30 +14,59 @@ export class ChatGptService {
     });
   }
 
-  async generateMessage(recipient: string, occasion: string, relation: string): Promise<object> {
-    const prompt = `Write a personalized message for my ${recipient} who is my ${relation}, for his/her  ${occasion} occasion. The message should be between 100 and 150 words dont add regard at the end by me also dont add [Your Name] at the end please `;
-
-    try {
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4-turbo', // Use a more recent model if available
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 150,
-        temperature: 0.7, // Adjust for creativity
-      });
-
-      // Ensure the response has choices and return the text
-      if (response.choices && response.choices.length > 0) {
-        const resultObject = {
-          message: response.choices[0].message.content.trim()
-        };
-    
-        return resultObject;
-      } else {
-        throw new Error('No message generated.');
+  async generateMessage(recipient: string, occasion: string, relation: string,type:string,date:Date): Promise<object> {
+   
+    if (type === "g-sender"){
+      const prompt = `Write a personalized message for my ${recipient} who is my ${relation}, for his/her  ${occasion} occasion. The message should be between 100 and 150 words dont add regard at the end by me also dont add [Your Name] at the end please `;
+      try {
+        const response = await this.openai.chat.completions.create({
+          model: 'gpt-4-turbo', // Use a more recent model if available
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 150,
+          temperature: 0.7, // Adjust for creativity
+        });
+  
+        // Ensure the response has choices and return the text
+        if (response.choices && response.choices.length > 0) {
+          const resultObject = {
+            message: response.choices[0].message.content.trim()
+          };
+      
+          return resultObject;
+        } else {
+          throw new Error('No message generated.');
+        }
+      } catch (error) {
+        console.error('Error generating message:', error);
+        throw new Error('Could not generate message. Please try again later.');
       }
-    } catch (error) {
-      console.error('Error generating message:', error);
-      throw new Error('Could not generate message. Please try again later.');
+    }else {
+      try {
+        const prompt = `Write a generalized message for my close people for this  ${occasion} occasion of mine invite them for the occasion on this ${date}. The message should be between 100 and 150 words dont add regard at the end by me also dont add [Your Name] at the end please `;
+        const response = await this.openai.chat.completions.create({
+          model: 'gpt-4-turbo', // Use a more recent model if available
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 150,
+          temperature: 0.7, // Adjust for creativity
+        });
+  
+        // Ensure the response has choices and return the text
+        if (response.choices && response.choices.length > 0) {
+          const resultObject = {
+            message: response.choices[0].message.content.trim()
+          };
+      
+          return resultObject;
+        } else {
+          throw new Error('No message generated.');
+        }
+      } catch (error) {
+        console.error('Error generating message:', error);
+        throw new Error('Could not generate message. Please try again later.');
+      }
+
     }
+
+   
   }
 }
