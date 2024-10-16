@@ -342,7 +342,7 @@ export class AuthService {
         idToken: token,
         audience: process.env.GOOGLE_CLIENT_ID,  // Specify your Google client ID here
       });
-
+       console.log("token")
       const payload = ticket.getPayload();
       const email = payload?.email;
       const name = payload?.name;

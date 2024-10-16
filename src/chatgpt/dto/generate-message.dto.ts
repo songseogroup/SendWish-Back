@@ -15,6 +15,8 @@ export class GenerateMessageDto {
 
   @IsString()
   type: string;
+  
   @IsDate()
-  date:Date;
+  date?: Date;
+
 }
