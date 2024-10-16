@@ -1,22 +1,24 @@
-import { IsString, IsNotEmpty, IsDate } from 'class-validator';
+import { IsString, IsNotEmpty, IsDate, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class GenerateMessageDto {
   @IsString()
-  @IsNotEmpty() // Ensures the recipient is not an empty string
+  @IsNotEmpty()
   recipient: string;
 
   @IsString()
-  @IsNotEmpty() // Ensures the occasion is not an empty string
+  @IsNotEmpty()
   occasion: string;
 
   @IsString()
-  @IsNotEmpty() // Ensures the occasion is not an empty string
+  @IsNotEmpty()
   relation: string;
 
   @IsString()
   type: string;
-  
+
+  @IsOptional() 
+  @Type(() => Date) 
   @IsDate()
   date?: Date;
-
 }
