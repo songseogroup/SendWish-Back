@@ -115,9 +115,12 @@ export class AuthService {
         .sendMail({
           to: userData.email, // list of receivers
           from: process.env.MY_EMAIL, // sender address
-          subject: 'Testing Nest MailerModule ✔', // Subject line
+          subject: 'Verify Your Email to Get Started ✔', // Subject line
           text: `Signup on stripe`, // plaintext body
-          html: `<a href="${account_link.url}">Click here to verify your account</a>`, // HTML body content
+          html: `<p>Thank you for verifying your email! Click the link below to complete your account setup:</p> 
+          <br></br><a href="${account_link.url}">Click here to verify your account</a><br></br>
+          <p>If you didn’t request this, please ignore this email.</p>
+          `, // HTML body content
         })
         .then((r) => {
           console.log(r, 'SEND RESPONSE');
