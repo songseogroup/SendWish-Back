@@ -46,7 +46,7 @@ export class AuthService {
         const account_link = await stripe.accountLinks.create({
           account: user.customerStripeAccountId,
           refresh_url: 'https://example.com/reauth',
-          return_url: `http://localhost:5173/signup-verify/${accessToken}/${refreshToken}`,
+          return_url: `https://sendwish.org/signup-verify/${accessToken}/${refreshToken}`,
           type: 'account_onboarding',
         });
 
@@ -107,7 +107,7 @@ export class AuthService {
       const account_link = await stripe.accountLinks.create({
         account: account.id,
         refresh_url: 'https://example.com/reauth',
-        return_url: `http://localhost:5173/signup-verify/${accessToken}/${refreshToken}`,
+        return_url: `https://sendwish.org/signup-verify/${accessToken}/${refreshToken}`,
         type: 'account_onboarding',
       });
 

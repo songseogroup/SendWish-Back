@@ -192,7 +192,7 @@ export class EventsService {
     try {
       // Find the event by ID
       const event = await this.eventRepository.findOne({ where: { eid: id } });
-
+      console.log(updateEventDto)
       if (!event) {
         throw new NotFoundException(`Event with ID ${id} not found`);
       }
