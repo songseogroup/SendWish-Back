@@ -92,6 +92,22 @@ export class EventsController {
     
     return this.eventsService.createPaymentIntent(id,body);
   }
+//   @Put('createPaymentIntent/:id')
+// @Roles(Role.User)
+// @HttpCode(201)
+// @ApiResponse({
+//   description: "Success",
+//   type: stripeIntentClass, 
+//   status: 200
+// })
+// async createPaymentIntent(
+//   @Param('id') id: number,
+//   @Req() request: Request,
+//   @Body() body: CreateGiftDto
+// ) {
+//   const { gift_amount } = body; // Extract giftAmount from the body
+//   return this.eventsService.createPaymentIntent(id, gift_amount); // Pass id and gift_amount separately
+// }
   /**
    * Finds all payments made against an event
    * @param id The ID of the event to find payments for

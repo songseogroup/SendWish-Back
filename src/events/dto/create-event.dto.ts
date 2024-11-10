@@ -27,7 +27,7 @@ export class CreateEventDto {
 
   @ApiProperty()
   @Transform(({ value }) => parseInt(value, 10))
-  @IsNotEmpty({ message: 'User ID is required' })
+  // @IsNotEmpty({ message: 'User ID is required' })
   @IsNumber({}, { message: 'User ID must be a number' })
-  userId: number;
+  userId?: number;
 }

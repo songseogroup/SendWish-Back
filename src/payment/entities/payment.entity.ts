@@ -17,9 +17,11 @@ export class Payment {
     @Column()
     gift_message:string;
     
-    
-    @Column()
-    sender: number;
+    @Column({ nullable: true })
+    email:string;
+
+    @Column({ nullable: true })
+    sender: string;
 
     @ManyToOne(() => Event) // Define Many-to-one relationship with Event entity
     @JoinColumn({ name: "eventId",referencedColumnName:"eid" })

@@ -20,8 +20,8 @@ export class CreatePaymentEventDto {
 
     @ApiProperty()
     @IsNotEmpty({ message: 'User ID is required' })
-    @IsNumber({}, { message: 'User ID must be a number' })
-    userId: number;
+    @IsString({ message: 'User ID must be a string' })
+    userId: string;
 
     @ApiProperty()
     @IsNotEmpty({ message: 'event ID is required' })
@@ -32,4 +32,9 @@ export class CreatePaymentEventDto {
     @IsNotEmpty({ message: 'Payment intent ID is required' })
     @IsString({ message: 'Payment intent ID must be a string' })
     paymentIntentId: string;
+
+    @ApiProperty()
+    @IsNotEmpty({ message: 'Email is required' })
+    @IsString({ message: 'Email must be a string' })
+    email: string;
 }

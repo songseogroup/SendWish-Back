@@ -79,7 +79,13 @@ export class AppModule {
         {path:'auth/google/redirect',method:RequestMethod.ALL},
         { path: '/auth/sign-up', method: RequestMethod.POST },
         { path: '/auth/forgot-password', method: RequestMethod.POST },
+        {path:'/events/:id([0-9]+)',method:RequestMethod.GET},
+        {path:'/events/createPaymentIntent/:id',method:RequestMethod.PUT},
+        {path:'/chatgpt/generate-message',method:RequestMethod.POST},
+        {path:"/payment",method:RequestMethod.POST
+        },
         { path: '/', method: RequestMethod.ALL },
+
       ) // Exclude /auth/login route
       .forRoutes('*'); // Apply to all other routes
   }

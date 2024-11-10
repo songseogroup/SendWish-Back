@@ -115,18 +115,18 @@ export class EventsService {
 
   async createPaymentIntent(id: number, body: CreateGiftDto) {
     try {
-      const { userId, gift_amount } = body;
+      // const { userId, gift_amount } = body;
 
+      const { gift_amount } = body;
+      // const getUserData = await this.usersService.findOne(userId);
 
-      const getUserData = await this.usersService.findOne(userId);
+      // if (!getUserData) {
 
-      if (!getUserData) {
+      //   throw new Error('User not found');
 
-        throw new Error('User not found');
+      // }
 
-      }
-
-      const customerStripeId = getUserData['customer_stripe_id'];
+      const customerStripeId = null;
 
       const createPayment = await this.paymentService.createPaymentIntent(customerStripeId, id, gift_amount);
 

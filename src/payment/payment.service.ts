@@ -60,6 +60,7 @@ export class PaymentService {
         event: event,
         sender: others.userId,
         gift_message: others.gift_message,
+        email:others.email,
         country: others.country,
       });
 
@@ -89,66 +90,156 @@ export class PaymentService {
   /**
    * Creates a payment intent for a customer to make a gift payment.
    *
-   * @param {string} customer_id - The ID of the customer making the payment.
+   * @param {string|null} customer_id - The ID of the customer making the payment.
    * @param {number} eventId - The ID of the event for which the payment is being made.
    * @param {number} gift_amount - The amount of the gift payment in cents.
    * @return {Promise<{ message: string, status: number, data: { id: string, client_secret: string, customer: string } }>} 
    *   A promise that resolves with an object containing a success message, a status code, 
    *   and the payment intent data, including the ID, client secret, and customer ID.
    */
-  async createPaymentIntent( customer_id: string, eventId:number,gift_amount:number)
-    : Promise<{
-      message: string, status: number, data: {
-        id: string
-        client_secret: string,
-        customer: string
-      }
-    }>
-   {
-    try {
+  // async createPaymentIntent( customer_id: string, eventId:number,gift_amount:number)
+  //   : Promise<{
+  //     message: string, status: number, data: {
+  //       id: string
+  //       client_secret: string,
+  //       customer: string
+  //     }
+  //   }>
+  //  {
+  //   try {
 
-      const check_event: TEvent = await this.eventRepository
+  //     const check_event: TEvent = await this.eventRepository
+  //       .createQueryBuilder('event')
+  //       .leftJoinAndSelect('event.owner', 'user')
+  //       .where('event.eid = :eventId', { eventId: eventId})
+  //       .getOne();
+
+  //     console.log("check_event.created_at",check_event.created_at);
+
+  //     if (!check_event) {
+  //       throw new Error('Error finding this event');
+  //     }
+  //     // Get the current date minus 7 days
+  //     const sevenDaysAgo = moment().subtract(7, 'days');
+
+  //     // Ensure created_at is correctly parsed
+  //     const eventCreatedAt = moment(check_event.created_at, 'YYYY-MM-DD HH:mm:ss.SSSSSS');
+
+  //     // Check if created_at is greater than seven days ago
+  //     if (eventCreatedAt.isAfter(sevenDaysAgo)) {
+  //       throw new Error('Event was created more than the last 7 days');
+  //     }
+  //     const new_payment = await this.my_stripe.paymentMethods.create({
+  //       type: 'card',
+  //       card: { token: 'tok_visa' },
+  //     });
+
+  //     const paymentMethod = await this.my_stripe.paymentMethods.attach(
+  //       new_payment.id,
+  //       {
+  //         customer: customer_id,
+  //       },
+  //     );
+  //     console.log("paymentMethod",paymentMethod);
+
+  //     const giftAmountInCents = Math.round(gift_amount * 100); // The actual gift amount in cents (e.g., $100 -> 10000 cents)
+      
+  //     const platformFee = Math.round(giftAmountInCents * 0.07); // 7% platform fee (e.g., $100 -> $7 -> 700 cents)
+      
+  //     const sendGift = await this.my_stripe.paymentIntents.create({
+  //       amount: giftAmountInCents, // The total amount charged to the customer (e.g., 10500 cents)
+  //       currency: 'AUD',
+  //       customer: customer_id,
+  //       payment_method: paymentMethod.id,
+  //       confirm: true,
+  //       automatic_payment_methods: {
+  //         enabled: true,
+  //         allow_redirects: 'never',
+  //       },
+  //       transfer_data: {
+  //         destination: check_event.owner.customerStripeAccountId, // Transfer to the connected account
+  //       },
+  //       application_fee_amount: platformFee // Platform fee (e.g., 200 cents)
+  //     });
+
+
+
+  //     console.log("sendGift",sendGift);
+
+
+  //     const { client_secret,id,customer } = sendGift;
+  //     const clientSecret={
+  //       id,
+  //       client_secret,
+  //       customer
+  //     }
+      
+  //     return {
+  //       message: 'Payment created',
+  //       data: clientSecret,
+  //       status: 200,
+  //     };
+
+  //   } catch (e) {
+  //     console.log(e);
+  //     throw new HttpException(
+  //       {
+  //         status: HttpStatus.BAD_REQUEST,
+  //         error: e.message,
+  //       },
+  //       HttpStatus.BAD_REQUEST,
+  //       {
+  //         cause: e,
+  //       },
+  //     );
+  //   }
+  // }
+
+  async createPaymentIntent(
+    customer_id: string | null,  // customer_id can be null or omitted
+    eventId: number,
+    gift_amount: number
+  ): Promise<{ message: string; status: number; data?: { id: string; client_secret: string; customer: string | null } }> {
+    try {
+      // Check if the event exists in the database
+      const check_event = await this.eventRepository
         .createQueryBuilder('event')
         .leftJoinAndSelect('event.owner', 'user')
-        .where('event.eid = :eventId', { eventId: eventId})
+        .where('event.eid = :eventId', { eventId })
         .getOne();
-
-      console.log("check_event.created_at",check_event.created_at);
-
-      if (!check_event) {
-        throw new Error('Error finding this event');
-      }
-      // Get the current date minus 7 days
+  
+        if (!check_event) {
+          return { message: 'Error finding this event', status: HttpStatus.BAD_REQUEST };
+        }
+  
+      // Check if the event was created within the last 7 days
       const sevenDaysAgo = moment().subtract(7, 'days');
-
-      // Ensure created_at is correctly parsed
       const eventCreatedAt = moment(check_event.created_at, 'YYYY-MM-DD HH:mm:ss.SSSSSS');
-
-      // Check if created_at is greater than seven days ago
-      if (eventCreatedAt.isAfter(sevenDaysAgo)) {
-        throw new Error('Event was created more than the last 7 days');
+      if (eventCreatedAt.isBefore(sevenDaysAgo)) {
+        return { message: 'Event is Expired', status: HttpStatus.BAD_REQUEST };
       }
-      const new_payment = await this.my_stripe.paymentMethods.create({
+      // Create a payment method (e.g., a one-time token)
+      const paymentMethod = await this.my_stripe.paymentMethods.create({
         type: 'card',
-        card: { token: 'tok_visa' },
+        card: { token: 'tok_visa' },  // Use a test token if customer_id is null
       });
-
-      const paymentMethod = await this.my_stripe.paymentMethods.attach(
-        new_payment.id,
-        {
+  
+      // Attach the payment method if customer_id is provided
+      if (customer_id) {
+        await this.my_stripe.paymentMethods.attach(paymentMethod.id, {
           customer: customer_id,
-        },
-      );
-      console.log("paymentMethod",paymentMethod);
-
-      const giftAmountInCents = Math.round(gift_amount * 100); // The actual gift amount in cents (e.g., $100 -> 10000 cents)
-      
-      const platformFee = Math.round(giftAmountInCents * 0.07); // 7% platform fee (e.g., $100 -> $7 -> 700 cents)
-      
+        });
+      }
+  
+      // Calculate amounts
+      const giftAmountInCents = Math.round(gift_amount * 100);
+      const platformFee = Math.round(giftAmountInCents * 0.07);
+  
+      // Create the payment intent
       const sendGift = await this.my_stripe.paymentIntents.create({
-        amount: giftAmountInCents, // The total amount charged to the customer (e.g., 10500 cents)
+        amount: giftAmountInCents,
         currency: 'AUD',
-        customer: customer_id,
+        customer: customer_id || undefined,  // Pass undefined if customer_id is null
         payment_method: paymentMethod.id,
         confirm: true,
         automatic_payment_methods: {
@@ -156,43 +247,32 @@ export class PaymentService {
           allow_redirects: 'never',
         },
         transfer_data: {
-          destination: check_event.owner.customerStripeAccountId, // Transfer to the connected account
+          destination: check_event.owner.customerStripeAccountId,
         },
-        application_fee_amount: platformFee // Platform fee (e.g., 200 cents)
+        application_fee_amount: platformFee,
       });
-
-
-
-      console.log("sendGift",sendGift);
-
-
-      const { client_secret,id,customer } = sendGift;
-      const clientSecret={
-        id,
-        client_secret,
-        customer
-      }
-      
+  
+      // Extract payment intent data to return
+      const { client_secret, id, customer } = sendGift;
       return {
         message: 'Payment created',
-        data: clientSecret,
         status: 200,
+        data: { id, client_secret, customer: customer || null },  // Return null if customer is undefined
       };
-
     } catch (e) {
-      console.log(e);
+      console.error(e);  // Log the error for debugging
       throw new HttpException(
         {
           status: HttpStatus.BAD_REQUEST,
           error: e.message,
         },
         HttpStatus.BAD_REQUEST,
-        {
-          cause: e,
-        },
+        { cause: e }
       );
     }
   }
+  
+
   // @Interval(24 * 60 * 60 * 1000) // 24 hours in milliseconds
   async clearPayment() {
     try {
@@ -269,19 +349,19 @@ export class PaymentService {
       const payments = await this.paymentRepository.find({
         where: { event: { eid: id } },
       });
-      let paymentsWithUsers = []
-      // Fetch user details for each payment
-      for (const payment of payments) {
-        const user = await this.usersService.findOne(payment.sender);
-        const { id, email, username } = user;
-        paymentsWithUsers.push({
-          ...payment,
-          sender: {
-            id, email, username
-          },
-        });
-      }
-      return {status:200,data:paymentsWithUsers,message:"success"}
+      // let paymentsWithUsers = []
+      // // Fetch user details for each payment
+      // for (const payment of payments) {
+      //   const user = await this.usersService.findOne(payment.sender);
+      //   const { id, email, username } = user;
+      //   paymentsWithUsers.push({
+      //     ...payment,
+      //     sender: {
+      //       id, email, username
+      //     },
+      //   });
+      // }
+      return {status:200,data:payments,message:"success"}
     }catch (error) {
       throw new HttpException({
         status: HttpStatus.BAD_REQUEST,
