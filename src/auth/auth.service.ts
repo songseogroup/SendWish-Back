@@ -54,7 +54,7 @@ export class AuthService {
           .sendMail({
             to: userData.email, // list of receivers
             from: process.env.MY_EMAIL, // sender address
-            subject: 'Testing Nest MailerModule ✔', // Subject line
+            subject: 'Stripe Verification Link ✔', // Subject line
             text: `Signup on stripe`, // plaintext body
             html: `<a href="${account_link.url}">Click here to verify your account</a>`, // HTML body content
           })
@@ -313,9 +313,9 @@ export class AuthService {
       .sendMail({
         to: email, // list of receivers
         from: process.env.MY_EMAIL, // sender address
-        subject: 'Testing Nest MailerModule ✔', // Subject line
-        text: `Password reset`, // plaintext body
-        html: `<p> Here is your updated temp password ${temporaryPassword}</a>`, // HTML body content
+        subject: 'Password Reset ✔', // Subject line
+        text: `You can use this password to sign in and can update your password too`, // plaintext body
+        html: `<p> Here is your temporary password ${temporaryPassword}</a>`, // HTML body content
       })
       .then((r) => {
         console.log(r, 'SEND RESPONSE');
