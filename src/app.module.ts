@@ -32,14 +32,16 @@ import { ChatgptModule } from './chatgpt/Chatgpt.module';
 
     MailerModule.forRoot({
       transport: {
-        service: 'Gmail',
+        host: 'smtp.office365.com',
+        port: 587, // Use 587 for TLS
+        secure: false, // Use false for STARTTLS
         auth: {
-          user: process.env.MY_EMAIL,
-          pass: process.env.EMAIL_PASS,
+          user: process.env.MY_EMAIL, // Your Microsoft email
+          pass: process.env.EMAIL_PASS, // Password or App Password
         },
       },
       defaults: {
-        from: process.env.MY_EMAIL,
+        from: '"Sendwish" <info@sendwish.org>',
       },
     }),
     MulterModule.register({

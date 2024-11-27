@@ -53,8 +53,9 @@ export class PaymentService {
 
     
       // Calculate the amount after deducting the platform fee and ensure it's in integer form
-      const transferAmount = Math.floor(others.gift_amount * (1 - 0.02));
-            
+      // const transferAmount = Math.floor(others.gift_amount * (1 - 0.02));
+      const transferAmount = Math.floor(others.gift_amount - Math.ceil(others.gift_amount * 0.07) - 30);
+
       const payment = this.paymentRepository.create({
         gift_amount: Math.floor(transferAmount),
         event: event,
@@ -64,7 +65,7 @@ export class PaymentService {
         country: others.country,
       });
 
-      // // Save the event and the user to persist the changes
+      // Save the event and the user to persist the changes
       await this.paymentRepository.save(payment);
       // update event amount collected
       await this.eventsService.update(eventId, {
