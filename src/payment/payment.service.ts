@@ -47,17 +47,18 @@ export class PaymentService {
       }
       stripeAccount = event.owner.customerStripeAccountId;
 
-
+      console.log("event moin", event);
       const paymentIntent = await this.my_stripe.paymentIntents.retrieve(createPaymentDto.paymentIntentId);
       console.log("paymentIntent", paymentIntent);
 
     
       // Calculate the amount after deducting the platform fee and ensure it's in integer form
       // const transferAmount = Math.floor(others.gift_amount * (1 - 0.02));
-      const transferAmount = Math.floor(others.gift_amount - Math.ceil(others.gift_amount * 0.07) - 30);
-
+      const transferAmount = Math.floor(others.gift_amount);
+     
       const payment = this.paymentRepository.create({
         gift_amount: Math.floor(transferAmount),
+        gift_fee: parseFloat(others.gift_fee),
         event: event,
         sender: others.userId,
         gift_message: others.gift_message,
@@ -71,10 +72,12 @@ export class PaymentService {
       await this.eventsService.update(eventId, {
         amount_collected: event.amount_collected + transferAmount
       })
+    
       return {
         status: 200,
-        message: 'Payment created',
+        message: 'Payment created moin',
         data: event,
+        amount: transferAmount,
       };
 
     } catch (e) {
@@ -94,113 +97,18 @@ export class PaymentService {
    * @param {string|null} customer_id - The ID of the customer making the payment.
    * @param {number} eventId - The ID of the event for which the payment is being made.
    * @param {number} gift_amount - The amount of the gift payment in cents.
+   * @param {number} gift_fee - The application fee amount in cents.
    * @return {Promise<{ message: string, status: number, data: { id: string, client_secret: string, customer: string } }>} 
    *   A promise that resolves with an object containing a success message, a status code, 
    *   and the payment intent data, including the ID, client secret, and customer ID.
    */
-  // async createPaymentIntent( customer_id: string, eventId:number,gift_amount:number)
-  //   : Promise<{
-  //     message: string, status: number, data: {
-  //       id: string
-  //       client_secret: string,
-  //       customer: string
-  //     }
-  //   }>
-  //  {
-  //   try {
-
-  //     const check_event: TEvent = await this.eventRepository
-  //       .createQueryBuilder('event')
-  //       .leftJoinAndSelect('event.owner', 'user')
-  //       .where('event.eid = :eventId', { eventId: eventId})
-  //       .getOne();
-
-  //     console.log("check_event.created_at",check_event.created_at);
-
-  //     if (!check_event) {
-  //       throw new Error('Error finding this event');
-  //     }
-  //     // Get the current date minus 7 days
-  //     const sevenDaysAgo = moment().subtract(7, 'days');
-
-  //     // Ensure created_at is correctly parsed
-  //     const eventCreatedAt = moment(check_event.created_at, 'YYYY-MM-DD HH:mm:ss.SSSSSS');
-
-  //     // Check if created_at is greater than seven days ago
-  //     if (eventCreatedAt.isAfter(sevenDaysAgo)) {
-  //       throw new Error('Event was created more than the last 7 days');
-  //     }
-  //     const new_payment = await this.my_stripe.paymentMethods.create({
-  //       type: 'card',
-  //       card: { token: 'tok_visa' },
-  //     });
-
-  //     const paymentMethod = await this.my_stripe.paymentMethods.attach(
-  //       new_payment.id,
-  //       {
-  //         customer: customer_id,
-  //       },
-  //     );
-  //     console.log("paymentMethod",paymentMethod);
-
-  //     const giftAmountInCents = Math.round(gift_amount * 100); // The actual gift amount in cents (e.g., $100 -> 10000 cents)
-      
-  //     const platformFee = Math.round(giftAmountInCents * 0.07); // 7% platform fee (e.g., $100 -> $7 -> 700 cents)
-      
-  //     const sendGift = await this.my_stripe.paymentIntents.create({
-  //       amount: giftAmountInCents, // The total amount charged to the customer (e.g., 10500 cents)
-  //       currency: 'AUD',
-  //       customer: customer_id,
-  //       payment_method: paymentMethod.id,
-  //       confirm: true,
-  //       automatic_payment_methods: {
-  //         enabled: true,
-  //         allow_redirects: 'never',
-  //       },
-  //       transfer_data: {
-  //         destination: check_event.owner.customerStripeAccountId, // Transfer to the connected account
-  //       },
-  //       application_fee_amount: platformFee // Platform fee (e.g., 200 cents)
-  //     });
-
-
-
-  //     console.log("sendGift",sendGift);
-
-
-  //     const { client_secret,id,customer } = sendGift;
-  //     const clientSecret={
-  //       id,
-  //       client_secret,
-  //       customer
-  //     }
-      
-  //     return {
-  //       message: 'Payment created',
-  //       data: clientSecret,
-  //       status: 200,
-  //     };
-
-  //   } catch (e) {
-  //     console.log(e);
-  //     throw new HttpException(
-  //       {
-  //         status: HttpStatus.BAD_REQUEST,
-  //         error: e.message,
-  //       },
-  //       HttpStatus.BAD_REQUEST,
-  //       {
-  //         cause: e,
-  //       },
-  //     );
-  //   }
-  // }
-
+ 
   async createPaymentIntent(
     customer_id: string | null,  // customer_id can be null or omitted
     eventId: number,
-    gift_amount: number
-  ): Promise<{ message: string; status: number; data?: { id: string; client_secret: string; customer: string | null } }> {
+    gift_amount: number,
+    gift_fee:number
+  ): Promise<{ message: string; status: number; data?: { id: string; client_secret: string; customer: string | null, application_fee_amount: number,amount:number } }> {
     try {
       // Check if the event exists in the database
       const check_event = await this.eventRepository
@@ -233,8 +141,9 @@ export class PaymentService {
       }
   
       // Calculate amounts
-      const giftAmountInCents = Math.round(gift_amount * 100);
-      const platformFee = Math.round(giftAmountInCents * 0.07);
+      const giftAmountInCents = Math.round((gift_amount + gift_fee) * 100);
+      // console.log("giftAmountInCents",giftAmountInCents - 50);
+      // const platformFee = Math.round(giftAmountInCents * 0.07);
   
       // Create the payment intent
       const sendGift = await this.my_stripe.paymentIntents.create({
@@ -250,15 +159,15 @@ export class PaymentService {
         transfer_data: {
           destination: check_event.owner.customerStripeAccountId,
         },
-        application_fee_amount: platformFee,
+        application_fee_amount: gift_fee,
       });
   
       // Extract payment intent data to return
-      const { client_secret, id, customer } = sendGift;
+      const { client_secret, id, customer,application_fee_amount,amount } = sendGift;
       return {
-        message: 'Payment created',
+        message: 'Payment mointent created',
         status: 200,
-        data: { id, client_secret, customer: customer || null },  // Return null if customer is undefined
+        data: { id, client_secret, customer: customer || null , application_fee_amount,amount},  // Return null if customer is undefined
       };
     } catch (e) {
       console.error(e);  // Log the error for debugging
@@ -350,18 +259,7 @@ export class PaymentService {
       const payments = await this.paymentRepository.find({
         where: { event: { eid: id } },
       });
-      // let paymentsWithUsers = []
-      // // Fetch user details for each payment
-      // for (const payment of payments) {
-      //   const user = await this.usersService.findOne(payment.sender);
-      //   const { id, email, username } = user;
-      //   paymentsWithUsers.push({
-      //     ...payment,
-      //     sender: {
-      //       id, email, username
-      //     },
-      //   });
-      // }
+    
       return {status:200,data:payments,message:"success"}
     }catch (error) {
       throw new HttpException({

@@ -117,7 +117,7 @@ export class EventsService {
     try {
       // const { userId, gift_amount } = body;
 
-      const { gift_amount } = body;
+      const { gift_amount,gift_fee } = body;
       // const getUserData = await this.usersService.findOne(userId);
 
       // if (!getUserData) {
@@ -128,7 +128,7 @@ export class EventsService {
 
       const customerStripeId = null;
 
-      const createPayment = await this.paymentService.createPaymentIntent(customerStripeId, id, gift_amount);
+      const createPayment = await this.paymentService.createPaymentIntent(customerStripeId, id, gift_amount,gift_fee);
 
       return createPayment;
 

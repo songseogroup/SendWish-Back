@@ -13,6 +13,10 @@ export class Payment {
 
     @Column()
     gift_amount:number;
+
+   @Column({ type: 'float', default: 0 })
+gift_fee: number;
+
     
     @Column()
     gift_message:string;

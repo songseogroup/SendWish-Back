@@ -11,7 +11,11 @@ export class CreateGiftDto {
   @IsNotEmpty()
   @IsNumber()
   gift_amount: number;
-
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsNumber()
+  gift_fee: number;
+ 
   @ApiProperty()
   @IsOptional()  // Expecting the Stripe customer ID as a string
   customerStripeId: string | null;

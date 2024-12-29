@@ -19,6 +19,12 @@ export class CreatePaymentEventDto {
     country: string;
 
     @ApiProperty()
+    @IsNotEmpty({ message: 'Gift fee is required' })
+    @IsNumber({}, { message: 'Gift fee must be a number' })
+    @IsPositive({ message: 'Gift fee must be a positive number' })
+    gift_fee: string;
+
+    @ApiProperty()
     @IsNotEmpty({ message: 'User ID is required' })
     @IsString({ message: 'User ID must be a string' })
     userId: string;
