@@ -33,12 +33,18 @@ import { ChatgptModule } from './chatgpt/Chatgpt.module';
     MailerModule.forRoot({
       transport: {
         host: 'smtp.office365.com',
-        port: 587, // Use 587 for TLS
-        secure: false, // Use false for STARTTLS
+        port: 587,
+        secure: false,
         auth: {
-          user: process.env.MY_EMAIL, // Your Microsoft email
-          pass: process.env.EMAIL_PASS, // Password or App Password
+          user: process.env.MY_EMAIL,
+          pass: process.env.EMAIL_PASS,
         },
+        tls: {
+          ciphers: 'SSLv3',
+          rejectUnauthorized: false
+        },
+        debug: true, // Enable debug logs
+        logger: true, // Enable logger
       },
       defaults: {
         from: '"Sendwish" <info@sendwish.org>',
@@ -79,8 +85,8 @@ export class AppModule {
         },
         {path:'auth/google',method:RequestMethod.POST},
         {path:'auth/google/redirect',method:RequestMethod.ALL},
-        { path: '/auth/sign-up', method: RequestMethod.POST },
-        { path: '/auth/forgot-password', method: RequestMethod.POST },
+        { path: 'auth/sign-up', method: RequestMethod.POST },
+        { path: 'auth/forgot-password', method: RequestMethod.POST },
         {path:'/events/:id([0-9]+)',method:RequestMethod.GET},
         {path:'/events/createPaymentIntent/:id',method:RequestMethod.PUT},
         {path:'/chatgpt/generate-message',method:RequestMethod.POST},

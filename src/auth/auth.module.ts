@@ -8,8 +8,17 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
 import {oauth2ClientProvider} from './oauth.provider'
 import { Auth } from './entities/auth.entity';
+import { MulterModule } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+
 @Module({
-  imports:[TypeOrmModule.forFeature([Auth,User])],
+  imports:[
+    TypeOrmModule.forFeature([Auth,User]),
+    MulterModule.register({
+      dest: './uploads',
+    }),
+  ],
 
   controllers: [AuthController],
   providers: [AuthService,UsersService,oauth2ClientProvider,{

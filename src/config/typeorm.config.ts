@@ -27,6 +27,6 @@ export const typeOrmConfig: TypeOrmModuleOptions = {
   ssl: require,
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   synchronize: true,
-
+  
 };
 

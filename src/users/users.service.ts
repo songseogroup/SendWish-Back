@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './entities/user.entity';
+import { User, KYCStatus } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { PageOptionsDto } from '../common/dtos';
 import { PageMetaDto } from '../common/page.meta.dto';
@@ -18,13 +18,21 @@ export class UsersService {
   ) {}
   async create(createUserDto: CreateUserDto): Promise<any> {
     const {
-      username,
+      firstName,
+      lastName,
       password,
       email,
       accessToken,
       refreshToken,
       customerStripeAccountId,
-      customer_stripe_id
+      customer_stripe_id,
+      routingNumber,
+      phoneNumber,
+      dateOfBirth,
+      address,
+      verificationDocument,
+      kycStatus,
+      stripeVerificationDetails
     } = createUserDto;
 
     const checkEmail = await this.userRepository.findOne({
@@ -32,16 +40,20 @@ export class UsersService {
     });
     let userData = checkEmail;
     console.log(checkEmail);
-    console.log(username, email);
-    if (username === '' || password === '' || email === '') {
+    console.log(firstName, email);
+    if (firstName === '' || password === '' || email === '' || lastName === '') {
       throw new Error('Empty values are not accepted');
     }
     if (checkEmail && checkEmail.verified) {
       throw new Error('User email already exist');
     } else if (checkEmail && !checkEmail.verified) {
       userData.accessToken = accessToken;
-
       userData.refreshToken = refreshToken;
+      userData.dateOfBirth = dateOfBirth;
+      userData.address = address;
+      userData.verificationDocument = verificationDocument;
+      userData.kycStatus = kycStatus || KYCStatus.UNVERIFIED;
+      userData.stripeVerificationDetails = stripeVerificationDetails;
 
       await this.userRepository.update(checkEmail.id, userData);
       console.log('HERER');
@@ -54,19 +66,22 @@ export class UsersService {
 
       const user = new User();
 
-      user.username = username;
-
+      user.firstName = firstName;
+      user.lastName = lastName;
       user.password = hashedPassword;
-
       user.email = email;
-
       user.verified = false;
-
       user.accessToken = accessToken;
-
       user.refreshToken = refreshToken;
-      user.customerStripeAccountId=customerStripeAccountId;
-      user.customer_stripe_id=customer_stripe_id
+      user.customerStripeAccountId = customerStripeAccountId;
+      user.customer_stripe_id = customer_stripe_id;
+      user.routingNumber = routingNumber;
+      user.phoneNumber = phoneNumber;
+      user.dateOfBirth = dateOfBirth;
+      user.address = address;
+      user.verificationDocument = verificationDocument;
+      user.kycStatus = kycStatus || KYCStatus.UNVERIFIED;
+      user.stripeVerificationDetails = stripeVerificationDetails;
 
       const myUser = await this.userRepository.save(user);
 
