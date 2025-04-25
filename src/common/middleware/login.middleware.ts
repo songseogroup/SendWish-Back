@@ -38,27 +38,50 @@ export class LoggerMiddleware implements NestMiddleware {
       // Exclude Google OAuth routes from JWT verification
       if (req.path === '/auth/google' || req.path === '/auth/google/redirect') {
         next();
-      } else {
-        // Regular login token verification using HS256
-        const authToken = req.headers.authorization // Bearer token
-        if (!authToken) {
-          throw new HttpException('Token not found', HttpStatus.UNAUTHORIZED);
-        }
+        return;
+      }
 
-        // Verify token with HS256 algorithm
-        const verify = jwt.verify(authToken, process.env.SECRET_KEY);
+      // Get the authorization header
+      const authHeader = req.headers.authorization;
+      
+      if (!authHeader) {
+        throw new HttpException('Authorization header is required', HttpStatus.UNAUTHORIZED);
+      }
 
-        if (!verify) {
+      // Check if the token is in the correct format (Bearer <token>)
+      if (!authHeader.startsWith('Bearer ')) {
+        throw new HttpException('Invalid token format. Use Bearer <token>', HttpStatus.UNAUTHORIZED);
+      }
+
+      // Extract the token
+      const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+      try {
+        // Verify the token
+        const decoded = jwt.verify(token, process.env.SECRET_KEY);
+        
+        if (!decoded) {
           throw new HttpException('Invalid token', HttpStatus.FORBIDDEN);
         }
 
-        // Attach the verified user to the request object
-        req['user'] = verify;
+        // Attach the decoded user to the request object
+        req['user'] = decoded;
         next();
+      } catch (jwtError) {
+        if (jwtError.name === 'TokenExpiredError') {
+          throw new HttpException('Token has expired', HttpStatus.UNAUTHORIZED);
+        }
+        if (jwtError.name === 'JsonWebTokenError') {
+          throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
+        }
+        throw new HttpException('Authentication failed', HttpStatus.UNAUTHORIZED);
       }
-    } catch (e) {
-      console.log("ERROR IN MIDDLEWARE", e);
-      throw new HttpException('Invalid token', HttpStatus.FORBIDDEN);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      console.error('Authentication error:', error);
+      throw new HttpException('Authentication failed', HttpStatus.UNAUTHORIZED);
     }
   }
 }

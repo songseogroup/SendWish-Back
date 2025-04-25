@@ -957,79 +957,116 @@ export class AuthService implements OnModuleInit {
   
   async login(userData: userDto) {
     try {
-      let user = await this.usersService.findByEmail(userData.email);
+      const user = await this.usersService.findByEmail(userData.email);
       if (!user) {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
       }
 
       if (!user.verified) {
-        throw new HttpException('User not verified', HttpStatus.NON_AUTHORITATIVE_INFORMATION);
+        throw new HttpException('User not verified', HttpStatus.UNAUTHORIZED);
       }
 
-      const validate = await bcrypt.compare(userData.password, user.password);
-      console.log("validate", validate);
-
-
-      if (!validate) {
+      const isPasswordValid = await bcrypt.compare(userData.password, user.password);
+      if (!isPasswordValid) {
         throw new HttpException('Incorrect credentials', HttpStatus.UNAUTHORIZED);
       }
 
-      const accessToken = jwt.sign(
-        { userEmail: userData.email ,userId:user.id},
-        process.env.SECRET_KEY,
-        { expiresIn: '1d' },
-      );
-      const refreshToken = jwt.sign(
-        { userEmail: userData.email,userId:user.id },
-        process.env.SECRET_REFRESH_KEY,
-        { expiresIn: '1d' },
-      );
-      user.accessToken = accessToken;
-      user.refreshToken = refreshToken;
-
-      await this.usersService.update(user.id, user);
-
-      delete user.password;
-      return {
-        message: 'SUCCESSFULLY LOGGED IN',
-        user: user,
-        status: HttpStatus.OK
+      // Generate tokens with consistent payload structure
+      const tokenPayload = {
+        userId: user.id,
+        email: user.email
       };
 
+      const accessToken = jwt.sign(
+        tokenPayload,
+        process.env.SECRET_KEY,
+        { expiresIn: '1d' }
+      );
 
-    } catch (e) {
+      const refreshToken = jwt.sign(
+        tokenPayload,
+        process.env.SECRET_REFRESH_KEY,
+        { expiresIn: '7d' }
+      );
+
+      // Update user with new tokens
+      user.accessToken = accessToken;
+      user.refreshToken = refreshToken;
+      await this.usersService.update(user.id, user);
+
+      // Remove sensitive data before sending response
+      const { password, ...userWithoutPassword } = user;
+
+      return {
+        message: 'Successfully logged in',
+        user: userWithoutPassword,
+        accessToken,
+        refreshToken,
+        status: HttpStatus.OK
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      console.error('Login error:', error);
       throw new HttpException(
         {
-          status: e.status||HttpStatus.BAD_REQUEST,
-          error: e.message || e,
+          status: HttpStatus.UNAUTHORIZED,
+          error: 'Authentication failed'
         },
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.UNAUTHORIZED
       );
     }
   }
 
-  async generateRefresh(token) {
+  async generateRefresh(token: string) {
     try {
-      const verify = jwt.verify(token, process.env.SECRET_REFRESH_KEY);
-      if (!verify) {
-        return 'Login again:  Refresh token expired';
+      if (!token) {
+        throw new HttpException('Refresh token is required', HttpStatus.UNAUTHORIZED);
       }
-      const email = verify.user_email;
-      let userData = await this.usersService.findByEmail(email);
-      const accessToken = jwt.sign(
-        { user_email: userData.email },
+
+      const decoded = jwt.verify(token, process.env.SECRET_REFRESH_KEY);
+      if (!decoded) {
+        throw new HttpException('Invalid refresh token', HttpStatus.UNAUTHORIZED);
+      }
+
+      const user = await this.usersService.findByEmail(decoded.email);
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+
+      const tokenPayload = {
+        userId: user.id,
+        email: user.email
+      };
+
+      const newAccessToken = jwt.sign(
+        tokenPayload,
         process.env.SECRET_KEY,
-        { expiresIn: '1h' },
+        { expiresIn: '1d' }
       );
-      userData.accessToken = accessToken;
-      await this.usersService.update(userData.id, userData);
-      return accessToken;
-    } catch (e) {
-      return e;
+
+      user.accessToken = newAccessToken;
+      await this.usersService.update(user.id, user);
+
+      return {
+        accessToken: newAccessToken,
+        message: 'Token refreshed successfully'
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      console.error('Token refresh error:', error);
+      throw new HttpException(
+        {
+          status: HttpStatus.UNAUTHORIZED,
+          error: 'Failed to refresh token'
+        },
+        HttpStatus.UNAUTHORIZED
+      );
     }
   }
-
-
 
   async updatePassword(userId: number, updatePasswordDto: UpdateAuthDto) {
     try{
