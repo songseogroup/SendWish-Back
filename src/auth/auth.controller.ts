@@ -16,6 +16,7 @@ import {
   UploadedFiles,
   UploadedFile,
   BadRequestException,
+  Res,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
@@ -23,12 +24,22 @@ import { UpdateAuthDto } from './dto/update-auth.dto';
 import { userDto } from './dto/user-login.dto';
 import { UsersService } from '../users/users.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor, FilesInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { Express } from 'express';
+import Stripe from 'stripe';
+import * as jwt from 'jsonwebtoken';
+
+// Configure Stripe with better timeout settings
+const stripeOptions = {
+  apiVersion: '2023-10-16' as const,
+  timeout: 60000,
+  maxNetworkRetries: 3,
+};
+const stripeInstance = new Stripe(process.env.STRIPE_KEY, stripeOptions);
 
 @Controller('auth')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -44,6 +55,28 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly userService: UsersService,
   ) {}
+
+  @Post('webhook')
+  @HttpCode(200)
+  async handleStripeWebhook(@Req() request: Request, @Res() response: Response) {
+    const sig = request.headers['stripe-signature'];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    try {
+      const event = stripeInstance.webhooks.constructEvent(
+        request.body,
+        sig,
+        endpointSecret
+      );
+
+      await this.authService.handleStripeWebhook(event);
+      response.json({ received: true });
+    } catch (err) {
+      console.error('Webhook Error:', err.message);
+      response.status(400).send(`Webhook Error: ${err.message}`);
+    }
+  }
+
   /**
    * Handles user sign up with document uploads for KYC verification.
    *
@@ -175,6 +208,12 @@ export class AuthController {
     },
   ) {
     try {
+      // Check if user already exists
+      const existingUser = await this.userService.findByEmail(registerUserDto.email);
+      if (existingUser) {
+        throw new BadRequestException('User with this email already exists');
+      }
+
       console.log('Files received:', JSON.stringify(files));
       console.log('Request body:', JSON.stringify(registerUserDto));
       
@@ -348,7 +387,9 @@ export class AuthController {
 
   @Get('/refresh')
   generateToken(@Req() request: Request) {
-    const token = request.headers['refresh'];
+    const token = Array.isArray(request.headers['refresh']) 
+      ? request.headers['refresh'][0] 
+      : request.headers['refresh'];
     return this.authService.generateRefresh(token);
   }
 
@@ -404,8 +445,243 @@ export class AuthController {
     return this.authService.update(+id, updateAuthDto);
   }
 
+  @Delete('delete-account')
+  @HttpCode(200)
+  @UseGuards(AuthGuard('jwt'))
+  async deleteAccount(@Req() request: Request) {
+    try {
+      const token = request.headers.authorization?.split(' ')[1];
+      if (!token) {
+        throw new BadRequestException('Authorization token is required');
+      }
+
+      const decoded = jwt.verify(token, process.env.SECRET_KEY);
+      console.log('Decoded JWT:', decoded);
+      
+      if (!decoded.email) {
+        throw new BadRequestException('User email not found in token');
+      }
+      
+      console.log('Deleting account for email:', decoded.email);
+      return this.authService.deleteAccountByEmail(decoded.email);
+    } catch (error) {
+      console.error('Error in deleteAccount:', error);
+      throw new BadRequestException(error.message || 'Failed to delete account');
+    }
+  }
+
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
+  @HttpCode(200)
+  async remove(@Param('id') id: string) {
+    try {
+      console.log('Received ID:', id, 'Type:', typeof id);
+      const user = await this.userService.findOne(parseInt(id));
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+      return await this.authService.deleteAccountByEmail(user.email);
+    } catch (error) {
+      console.error('Error in remove:', error);
+      throw new BadRequestException(error.message || 'Failed to delete user');
+    }
+  }
+
+  @Post('update-profile')
+  @HttpCode(200)
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        front: {
+          type: 'string',
+          format: 'binary',
+          description: 'Front side of ID document',
+        },
+        back: {
+          type: 'string',
+          format: 'binary',
+          description: 'Back side of ID document',
+        },
+        additional: {
+          type: 'string',
+          format: 'binary',
+          description: 'Additional verification document (optional)',
+        },
+        firstName: {
+          type: 'string',
+          description: 'First Name of the user',
+        },
+        lastName: {
+          type: 'string',
+          description: 'Last Name of the user',
+        },
+        email: {
+          type: 'string',
+          format: 'email',
+          description: 'Email address of the user',
+        },
+        phoneNumber: {
+          type: 'string',
+          description: 'Phone Number of the user',
+        },
+        dateOfBirth: {
+          type: 'string',
+          format: 'date',
+          description: 'Date of birth of the user',
+        },
+        address: {
+          type: 'object',
+          properties: {
+            line1: { type: 'string' },
+            line2: { type: 'string' },
+            city: { type: 'string' },
+            state: { type: 'string' },
+            postalCode: { type: 'string' }
+          }
+        },
+        iban: {
+          type: 'string',
+          description: 'Bank account number',
+        },
+        routingNumber: {
+          type: 'string',
+          description: 'BSB number',
+        }
+      }
+    }
+  })
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'front', maxCount: 1 },
+      { name: 'back', maxCount: 1 },
+      { name: 'additional', maxCount: 1 }
+    ], {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+          cb(null, `${file.fieldname}-${uniqueSuffix}-${file.originalname}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (!file.originalname.match(/\.(jpg|jpeg|png|pdf)$/)) {
+          return cb(new Error('Only image and PDF files are allowed!'), false);
+        }
+        cb(null, true);
+      },
+      limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB max file size
+      }
+    })
+  )
+  async updateProfile(
+    @Body() updateUserDto: any,
+    @UploadedFiles() files: { 
+      front?: Express.Multer.File[],
+      back?: Express.Multer.File[],
+      additional?: Express.Multer.File[]
+    },
+    @Req() request: Request
+  ) {
+    try {
+      // Get user from token
+      const token = request.headers.authorization?.split(' ')[1];
+      if (!token) {
+        throw new BadRequestException('Authorization token is required');
+      }
+
+      const decoded = jwt.verify(token, process.env.SECRET_KEY);
+      const user = await this.userService.findByEmail(decoded.user_email);
+      
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      // Create a plain object with the proper shape of CreateUserDto
+      const userData: Partial<CreateUserDto> = {
+        firstName: updateUserDto.firstName,
+        lastName: updateUserDto.lastName,
+        email: user.email, // Keep original email
+        phoneNumber: updateUserDto.phoneNumber,
+        iban: updateUserDto.iban,
+        routingNumber: updateUserDto.routingNumber,
+        verificationDocument: {
+          front: files.front?.[0]?.path,
+          back: files.back?.[0]?.path,
+          additional: files.additional?.[0]?.path
+        }
+      };
+
+      // Parse the date string to a Date object
+      if (updateUserDto.dateOfBirth) {
+        userData.dateOfBirth = new Date(updateUserDto.dateOfBirth);
+      }
+
+      // Parse the address if provided
+      if (updateUserDto.address) {
+        userData.address = updateUserDto.address;
+      }
+
+      return this.authService.updateUserProfile(user.id, userData, files);
+    } catch (error) {
+      console.error('Error in updateProfile:', error);
+      throw new BadRequestException(error.message || 'Failed to update profile');
+    }
+  }
+
+  /**
+   * Test webhook endpoint for development
+   * 
+   * @param {Request} request - The HTTP request
+   * @param {Response} response - The HTTP response
+   * @returns {Promise<void>}
+   * 
+   * @api {post} /auth/test-webhook Test Webhook
+   * @apiName TestWebhook
+   * @apiGroup Auth
+   * @apiDescription Test endpoint for Stripe webhooks in development
+   */
+  @Post('test-webhook')
+  @HttpCode(200)
+  async testWebhook(@Req() request: Request, @Res() response: Response) {
+    try {
+      // For testing, we'll skip signature verification
+      const event = request.body;
+      
+      // Log the event for debugging
+      console.log('Test Webhook Event:', JSON.stringify(event, null, 2));
+      
+      // Process the event
+      await this.authService.handleStripeWebhook(event);
+      
+      response.json({ received: true });
+    } catch (err) {
+      console.error('Test Webhook Error:', err.message);
+      response.status(400).send(`Test Webhook Error: ${err.message}`);
+    }
+  }
+
+  @Delete('delete-user')
+  @HttpCode(200)
+  @UseGuards(AuthGuard('jwt'))
+  async deleteUser(@Req() request: Request) {
+    try {
+      const token = request.headers.authorization?.split(' ')[1];
+      if (!token) {
+        throw new BadRequestException('Authorization token is required');
+      }
+
+      const decoded = jwt.verify(token, process.env.SECRET_KEY);
+      if (!decoded.user_email) {
+        throw new BadRequestException('User email not found in token');
+      }
+      
+      console.log('Deleting user with email:', decoded.user_email);
+      return await this.authService.deleteAccountByEmail(decoded.user_email);
+    } catch (error) {
+      console.error('Error in deleteUser:', error);
+      throw new BadRequestException(error.message || 'Failed to delete user');
+    }
   }
 }

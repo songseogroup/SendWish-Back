@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User, KYCStatus } from './entities/user.entity';
@@ -141,15 +141,62 @@ export class UsersService {
   }
 
   async remove(id: number) {
+    const parsedId = Number(id);
+  
+    if (!Number.isInteger(parsedId)) {
+      throw new BadRequestException(`Invalid ID: must be an integer ${id} ${parsedId}`);
+    }
+  
+    console.log('Removing user with ID:', parsedId);
+  
     const objectToRemove = await this.userRepository.findOne({
-      where: { id: id },
+      where: { id: parsedId },
     });
+  
     if (objectToRemove) {
       await this.userRepository.remove(objectToRemove);
       return 'deleted';
     } else {
-      // Handle the case where the object doesn't exist.
       throw new NotFoundException('Object not found');
+    }
+  }
+  
+
+  async findByStripeAccountId(stripeAccountId: string) {
+    return this.userRepository.findOne({
+      where: { customerStripeAccountId: stripeAccountId }
+    });
+  }
+
+  async removeUserEvents(userId: number) {
+    try {
+      // Find the user with their events
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+        relations: ['events']
+      });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      // Delete all events associated with the user
+      if (user.events && user.events.length > 0) {
+        for (const event of user.events) {
+          await this.userRepository
+            .createQueryBuilder()
+            .relation(User, 'events')
+            .of(user)
+            .remove(event);
+        }
+      }
+
+      return {
+        message: 'User events deleted successfully'
+      };
+    } catch (error) {
+      console.error('Error in removeUserEvents:', error);
+      throw new BadRequestException('Failed to delete user events');
     }
   }
 }

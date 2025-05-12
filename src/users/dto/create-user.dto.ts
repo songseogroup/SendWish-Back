@@ -195,4 +195,24 @@ export class CreateUserDto {
     @ValidateNested()
     @Type(() => StripeVerificationDetailsDto)
     stripeVerificationDetails?: StripeVerificationDetailsDto;
+
+    @ApiProperty({ description: 'Business website for Stripe onboarding', required: false })
+    @IsOptional()
+    @IsString({ message: 'Website must be a string' })
+    website?: string;
+
+    @ApiProperty({ description: 'Merchant Category Code (MCC) for Stripe onboarding', required: false, example: '5734' })
+    @IsOptional()
+    @IsString({ message: 'MCC must be a string' })
+    mcc?: string;
+
+    @ApiProperty({ description: 'Product description for Stripe onboarding', required: false })
+    @IsOptional()
+    @IsString({ message: 'Product description must be a string' })
+    product_description?: string;
+
+    @ApiProperty({ description: 'IP address for Stripe TOS acceptance', required: false })
+    @IsOptional()
+    @IsString({ message: 'IP must be a string' })
+    ip?: string;
 }

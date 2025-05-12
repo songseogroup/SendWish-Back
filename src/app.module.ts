@@ -25,7 +25,9 @@ import { ChatgptModule } from './chatgpt/Chatgpt.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     TypeOrmModule.forRoot({ ...typeOrmConfig, autoLoadEntities: true }),
 
     ScheduleModule.forRoot(),
