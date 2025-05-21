@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete ,
   Req,
   HttpCode,
-
+  UseGuards
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CreatePaymentEventDto } from './dto/create-payment.dto';
@@ -11,6 +11,8 @@ import { Roles } from 'src/common/roles.decorator';
 import { Role } from 'src/common/role.enum';
 import { ApiResponse } from '@nestjs/swagger';
 import { EventClass } from './classes/payment-create.class';
+import { User } from '../users/entities/user.entity';
+import { AuthGuard } from '@nestjs/passport';
 @Controller('payment')
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService,
@@ -53,12 +55,13 @@ export class PaymentController {
     status: 200
   })
 
-  findMyPayments(@Req() req: Request) {
-
-    const user = req['user'];
+  @Get('my-payments')
+  @UseGuards(AuthGuard('jwt'))
+  async findMyPayments(@Req() req: Request & { user: User }) {
+    const user = req.user;
     console.log("user", user);
-    const { userId, ...other } = user
-    const getPayments = this.paymentService.findMyPayments(userId);
+    const { id, ...other } = user
+    const getPayments = this.paymentService.findMyPayments(id);
     return getPayments;
   }
 

@@ -13,14 +13,22 @@ import { OAuth2Client } from 'google-auth-library';
 import * as stripe from 'stripe';
 import { KYCStatus } from '../users/entities/user.entity';
 import * as fs from 'fs';
+import { JwtPayload } from 'jsonwebtoken';
+import { Role } from '../common/role.enum';
 
 // Configure Stripe with better timeout settings
 const stripeOptions = {
-  apiVersion: '2023-10-16', // Use a specific API version
+  apiVersion: '2024-04-10', // Use a specific API version
   timeout: 60000, // 60 second timeout
   maxNetworkRetries: 3, // Automatic retries for network issues
 };
 let stripeInstance = require('stripe')(process.env.STRIPE_KEY, stripeOptions);
+
+interface CustomJwtPayload extends JwtPayload {
+  email: string;
+  id: number;
+  role: Role;
+}
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -49,20 +57,20 @@ export class AuthService implements OnModuleInit {
     try {
       console.log(process.env.STRIPE_KEY);
       console.log(process.env.STRIPE_TEST_KEY);
-      const verify = jwt.verify(token, process.env.SECRET_KEY);
-      const email = verify.user_email;
+      const verify = jwt.verify(token, process.env.SECRET_KEY) as CustomJwtPayload;
+      const email = verify.email;
       let userData = await this.usersService.findByEmail(email);
       
       // If user is already verified, return success with tokens
       if(!!userData.verified) {
         // Generate new tokens for the user
         const accessToken = jwt.sign(
-          { email: email, id: userData.id },
+          { email: email, id: userData.id, role: userData.role || 'user' },
           process.env.SECRET_KEY,
           { expiresIn: '1d' },
         );
         const refreshToken = jwt.sign(
-          { email: email, id: userData.id },
+          { email: email, id: userData.id, role: userData.role || 'user' },
           process.env.SECRET_REFRESH_KEY,
           { expiresIn: '1d' },
         );
@@ -92,12 +100,12 @@ export class AuthService implements OnModuleInit {
         
         // Generate new tokens for the user
         const accessToken = jwt.sign(
-          { email: email, id: userData.id },
+          { email: email, id: userData.id, role: userData.role || 'user' },
           process.env.SECRET_KEY,
           { expiresIn: '1d' },
         );
         const refreshToken = jwt.sign(
-          { email: email, id: userData.id },
+          { email: email, id: userData.id, role: userData.role || 'user' },
           process.env.SECRET_REFRESH_KEY,
           { expiresIn: '1d' },
         );
@@ -281,7 +289,8 @@ export class AuthService implements OnModuleInit {
       // Generate tokens for the user
       const tokenPayload = {
         email: registerUserDto.email,
-        id: null // Will be updated after user creation
+        id: null, // Will be updated after user creation
+        role: 'user' // Default to 'user' if role not set
       };
 
       const accessToken = jwt.sign(
@@ -492,7 +501,8 @@ export class AuthService implements OnModuleInit {
       // Update tokens with user ID
       const updatedTokenPayload = {
         email: user.email,
-        id: user.id
+        id: user.id,
+        role: user.role || 'user' // Default to 'user' if role not set
       };
 
       const updatedAccessToken = jwt.sign(
@@ -581,10 +591,10 @@ export class AuthService implements OnModuleInit {
         throw new HttpException('Incorrect credentials', HttpStatus.UNAUTHORIZED);
       }
 
-      // Generate tokens with consistent payload structure
-      const tokenPayload = {
+      const tokenPayload: CustomJwtPayload = {
         id: user.id,
-        email: user.email
+        email: user.email,
+        role: user.role as Role
       };
 
       const accessToken = jwt.sign(
@@ -599,12 +609,10 @@ export class AuthService implements OnModuleInit {
         { expiresIn: '7d' }
       );
 
-      // Update user with new tokens
       user.accessToken = accessToken;
       user.refreshToken = refreshToken;
       await this.usersService.update(user.id, user);
 
-      // Remove sensitive data before sending response
       const { password, ...userWithoutPassword } = user;
 
       return {
@@ -635,7 +643,7 @@ export class AuthService implements OnModuleInit {
         throw new HttpException('Refresh token is required', HttpStatus.UNAUTHORIZED);
       }
 
-      const decoded = jwt.verify(token, process.env.SECRET_REFRESH_KEY);
+      const decoded = jwt.verify(token, process.env.SECRET_REFRESH_KEY) as CustomJwtPayload;
       if (!decoded) {
         throw new HttpException('Invalid refresh token', HttpStatus.UNAUTHORIZED);
       }
@@ -647,7 +655,8 @@ export class AuthService implements OnModuleInit {
 
       const tokenPayload = {
         id: user.id,
-        email: user.email
+        email: user.email,
+        role: user.role || 'user' // Default to 'user' if role not set
       };
 
       const newAccessToken = jwt.sign(

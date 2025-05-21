@@ -4,6 +4,7 @@ import { CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Exclude } from 'class-transformer';
 import { Event } from 'src/events/entities/event.entity';
+import { Role } from 'src/common/role.enum';
 
 export enum KYCStatus {
   UNVERIFIED = 'unverified',
@@ -33,6 +34,15 @@ export class User {
   @Column({ nullable: true })
   iban: string;
 
+  @Column({ nullable: true })
+  bankAccountLast4: string;
+
+  @Column({ nullable: true })
+  bankAccountStatus: string;
+
+  @Column({ nullable: true })
+  bankAccountCurrency: string;
+
   @Column({nullable:true})
   customer_stripe_id:string;
 
@@ -45,6 +55,9 @@ export class User {
 
   @Column()
   verified: boolean | null;
+
+  @Column({ type: 'enum', enum: Role, default: Role.User })
+  role: Role;
 
   @Column()
   accessToken: string;

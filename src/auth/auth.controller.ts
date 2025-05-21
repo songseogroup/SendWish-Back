@@ -32,6 +32,8 @@ import { diskStorage } from 'multer';
 import { Express } from 'express';
 import Stripe from 'stripe';
 import * as jwt from 'jsonwebtoken';
+import { User } from '../users/entities/user.entity';
+import { JwtPayload } from 'jsonwebtoken';
 
 // Configure Stripe with better timeout settings
 const stripeOptions = {
@@ -40,6 +42,11 @@ const stripeOptions = {
   maxNetworkRetries: 3,
 };
 const stripeInstance = new Stripe(process.env.STRIPE_KEY, stripeOptions);
+
+interface CustomJwtPayload extends JwtPayload {
+  email: string;
+  id: number;
+}
 
 @Controller('auth')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -174,6 +181,7 @@ export class AuthController {
       required: ['front', 'back', 'firstName', 'lastName', 'email', 'password', 'phoneNumber', 'dateOfBirth', 'address', 'iban', 'routingNumber'],
     },
   })
+  
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'front', maxCount: 1 },
@@ -396,10 +404,8 @@ export class AuthController {
   @Post("update-password")
   @HttpCode(200)
   @ApiResponse({ status: HttpStatus.OK, description: 'Password updated'})
-  updatePassword(@Req() request:Request,@Body() updateAuthDto:UpdateAuthDto) {
-    const user = request['user'];
-    const {userId,...other}=user;
-    return this.authService.updatePassword(userId, updateAuthDto);
+  updatePassword(@Req() request: Request & { user: User }, @Body() updateAuthDto: UpdateAuthDto) {
+    return this.authService.updatePassword(request.user.id, updateAuthDto);
   }
 
 
@@ -455,7 +461,7 @@ export class AuthController {
         throw new BadRequestException('Authorization token is required');
       }
 
-      const decoded = jwt.verify(token, process.env.SECRET_KEY);
+      const decoded = jwt.verify(token, process.env.SECRET_KEY) as CustomJwtPayload;
       console.log('Decoded JWT:', decoded);
       
       if (!decoded.email) {
@@ -591,7 +597,7 @@ export class AuthController {
         throw new BadRequestException('Authorization token is required');
       }
 
-      const decoded = jwt.verify(token, process.env.SECRET_KEY);
+      const decoded = jwt.verify(token, process.env.SECRET_KEY) as CustomJwtPayload;
       const user = await this.userService.findByEmail(decoded.user_email);
       
       if (!user) {
@@ -672,13 +678,13 @@ export class AuthController {
         throw new BadRequestException('Authorization token is required');
       }
 
-      const decoded = jwt.verify(token, process.env.SECRET_KEY);
-      if (!decoded.user_email) {
+      const decoded = jwt.verify(token, process.env.SECRET_KEY) as CustomJwtPayload;
+      if (!decoded.email) {
         throw new BadRequestException('User email not found in token');
       }
       
-      console.log('Deleting user with email:', decoded.user_email);
-      return await this.authService.deleteAccountByEmail(decoded.user_email);
+      console.log('Deleting user with email:', decoded.email);
+      return await this.authService.deleteAccountByEmail(decoded.email);
     } catch (error) {
       console.error('Error in deleteUser:', error);
       throw new BadRequestException(error.message || 'Failed to delete user');

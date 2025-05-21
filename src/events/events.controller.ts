@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, Req, ClassSerializerInterceptor, UseInterceptors, Put,UploadedFiles, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, Req, ClassSerializerInterceptor, UseInterceptors, Put, UploadedFiles, UploadedFile, UseGuards } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
@@ -14,15 +14,19 @@ import { stripeIntentClass } from 'src/payment/classes/payment-create.class';
 import {  FileInterceptor } from '@nestjs/platform-express';
 import { PaymentService } from 'src/payment/payment.service';
 import { S3Service } from 'src/utils/s3.service';
+import { User } from '../users/entities/user.entity';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from '../common/guard/roles.guard';
+
 @Controller('events')
 @UseInterceptors(ClassSerializerInterceptor)
-
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class EventsController {
   constructor(
     private readonly eventsService: EventsService,
-    private readonly paymentService:PaymentService,
-    private readonly s3Service:S3Service)
-     {}
+    private readonly paymentService: PaymentService,
+    private readonly s3Service: S3Service
+  ) {}
 
   /**
  * Creates a new event.
@@ -64,19 +68,18 @@ export class EventsController {
   }
 
   @Get()
+  @Roles(Role.User)
   findAll() {
     return this.eventsService.findAll();
   }
 
   // get all events of a user
-  @Get('/myevents')
+  @Get('my-events')
   @Roles(Role.User)
-  @HttpCode(200)
-  findByUser(@Req() request: Request) {
-    const user = request['user'];
-      console.log("user",user);
-      const {userId,...other}=user
-    return this.eventsService.findByUser(userId);
+  async findMyEvents(@Req() request: Request & { user: User }) {
+    const user = request.user;
+    const {id} = user
+    return this.eventsService.findByUser(id);
   }
 
 //  this is is of event
@@ -140,6 +143,7 @@ export class EventsController {
 
 
   @Delete(':id')
+  @Roles(Role.User)
   remove(@Param('id') id: string) {
     return this.eventsService.remove(+id);
   }
