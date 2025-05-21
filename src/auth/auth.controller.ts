@@ -34,10 +34,11 @@ import Stripe from 'stripe';
 import * as jwt from 'jsonwebtoken';
 import { User } from '../users/entities/user.entity';
 import { JwtPayload } from 'jsonwebtoken';
+import { Role } from '../common/role.enum';
 
 // Configure Stripe with better timeout settings
-const stripeOptions = {
-  apiVersion: '2023-10-16' as const,
+const stripeOptions: Stripe.StripeConfig = {
+  apiVersion: '2023-10-16',
   timeout: 60000,
   maxNetworkRetries: 3,
 };
@@ -46,6 +47,8 @@ const stripeInstance = new Stripe(process.env.STRIPE_KEY, stripeOptions);
 interface CustomJwtPayload extends JwtPayload {
   email: string;
   id: number;
+  role: Role;
+  user_email?: string; // Adding this for backward compatibility
 }
 
 @Controller('auth')
