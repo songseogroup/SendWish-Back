@@ -35,7 +35,7 @@ describe('KYC Validation', () => {
         {
           provide: 'STRIPE_CLIENT',
           useValue: new Stripe(process.env.STRIPE_KEY, {
-            apiVersion: '2024-04-10',
+            apiVersion: '2025-04-30.basil',
           }),
         },
       ],
@@ -65,7 +65,7 @@ describe('KYC Validation', () => {
       };
 
       await expect(
-        authService.customSignUp(registerDto, {})
+        authService.customSignUp(registerDto as any, {})
       ).rejects.toThrow('Document verification failed');
     });
 
