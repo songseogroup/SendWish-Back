@@ -38,7 +38,7 @@ import { Role } from '../common/role.enum';
 
 // Configure Stripe with better timeout settings
 const stripeOptions: Stripe.StripeConfig = {
-  apiVersion: '2023-10-16',
+  apiVersion: '2023-10-16' as const,
   timeout: 60000,
   maxNetworkRetries: 3,
 };
