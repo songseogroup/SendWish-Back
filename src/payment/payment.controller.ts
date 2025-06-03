@@ -54,11 +54,8 @@ export class PaymentController {
   })
 
   findMyPayments(@Req() req: Request) {
-
-    const user = req['user'];
-    console.log("user", user);
-    const { userId, ...other } = user
-    const getPayments = this.paymentService.findMyPayments(userId);
+    const user = req['user'] as { id: number; email: string };
+    const getPayments = this.paymentService.findMyPayments(user.id);
     return getPayments;
   }
 

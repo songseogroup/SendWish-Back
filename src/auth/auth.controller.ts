@@ -32,6 +32,7 @@ import { diskStorage } from 'multer';
 import { Express } from 'express';
 import Stripe from 'stripe';
 import * as jwt from 'jsonwebtoken';
+import { JwtPayload } from 'jsonwebtoken';
 
 // Configure Stripe with better timeout settings
 const stripeOptions = {
@@ -40,6 +41,13 @@ const stripeOptions = {
   maxNetworkRetries: 3,
 };
 const stripeInstance = new Stripe(process.env.STRIPE_KEY, stripeOptions);
+
+// Add interface for our custom JWT payload
+interface CustomJwtPayload extends JwtPayload {
+  email?: string;
+  user_email?: string;
+  userId?: number;
+}
 
 @Controller('auth')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -397,7 +405,7 @@ export class AuthController {
   @HttpCode(200)
   @ApiResponse({ status: HttpStatus.OK, description: 'Password updated'})
   updatePassword(@Req() request:Request,@Body() updateAuthDto:UpdateAuthDto) {
-    const user = request['user'];
+    const user = request['user'] as { userId: number };
     const {userId,...other}=user;
     return this.authService.updatePassword(userId, updateAuthDto);
   }
@@ -455,7 +463,7 @@ export class AuthController {
         throw new BadRequestException('Authorization token is required');
       }
 
-      const decoded = jwt.verify(token, process.env.SECRET_KEY);
+      const decoded = jwt.verify(token, process.env.SECRET_KEY) as CustomJwtPayload;
       console.log('Decoded JWT:', decoded);
       
       if (!decoded.email) {
@@ -585,13 +593,12 @@ export class AuthController {
     @Req() request: Request
   ) {
     try {
-      // Get user from token
       const token = request.headers.authorization?.split(' ')[1];
       if (!token) {
         throw new BadRequestException('Authorization token is required');
       }
 
-      const decoded = jwt.verify(token, process.env.SECRET_KEY);
+      const decoded = jwt.verify(token, process.env.SECRET_KEY) as CustomJwtPayload;
       const user = await this.userService.findByEmail(decoded.user_email);
       
       if (!user) {
@@ -672,7 +679,7 @@ export class AuthController {
         throw new BadRequestException('Authorization token is required');
       }
 
-      const decoded = jwt.verify(token, process.env.SECRET_KEY);
+      const decoded = jwt.verify(token, process.env.SECRET_KEY) as CustomJwtPayload;
       if (!decoded.user_email) {
         throw new BadRequestException('User email not found in token');
       }

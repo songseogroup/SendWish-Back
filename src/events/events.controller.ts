@@ -73,10 +73,8 @@ export class EventsController {
   @Roles(Role.User)
   @HttpCode(200)
   findByUser(@Req() request: Request) {
-    const user = request['user'];
-      console.log("user",user);
-      const {userId,...other}=user
-    return this.eventsService.findByUser(userId);
+    const user = request['user'] as { id: number; email: string };
+    return this.eventsService.findByUser(user.id);
   }
 
 //  this is is of event

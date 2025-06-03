@@ -9,9 +9,12 @@ import { User } from 'src/users/entities/user.entity';
 import { Payment } from './entities/payment.entity';
 import { S3Service } from 'src/utils/s3.service';
 import { ConfigService } from '@nestjs/config';
+import { StripeKYCService } from './stripe-kyc.service';
+import { StripeKYCController } from './stripe-kyc.controller';
 @Module({
   imports:[TypeOrmModule.forFeature([Event,Payment,User])],
-  controllers: [PaymentController],
-  providers: [PaymentService, EventsService, UsersService,S3Service,ConfigService], 
+  controllers: [PaymentController, StripeKYCController],
+  providers: [PaymentService, EventsService, UsersService,S3Service,ConfigService, StripeKYCService], 
+  exports: [PaymentService],
 })
 export class PaymentModule {}

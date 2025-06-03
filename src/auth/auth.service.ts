@@ -13,6 +13,7 @@ import { OAuth2Client } from 'google-auth-library';
 import * as stripe from 'stripe';
 import { KYCStatus } from '../users/entities/user.entity';
 import * as fs from 'fs';
+import { Expose } from 'class-transformer';
 
 // Configure Stripe with better timeout settings
 const stripeOptions = {
@@ -49,8 +50,8 @@ export class AuthService implements OnModuleInit {
     try {
       console.log(process.env.STRIPE_KEY);
       console.log(process.env.STRIPE_TEST_KEY);
-      const verify = jwt.verify(token, process.env.SECRET_KEY);
-      const email = verify.user_email;
+      const verify = jwt.verify(token, process.env.SECRET_KEY) as { email: string, id: number };
+      const email = verify.email;
       let userData = await this.usersService.findByEmail(email);
       
       // If user is already verified, return success with tokens
@@ -635,7 +636,7 @@ export class AuthService implements OnModuleInit {
         throw new HttpException('Refresh token is required', HttpStatus.UNAUTHORIZED);
       }
 
-      const decoded = jwt.verify(token, process.env.SECRET_REFRESH_KEY);
+      const decoded = jwt.verify(token, process.env.SECRET_REFRESH_KEY) as { email: string, id: number };
       if (!decoded) {
         throw new HttpException('Invalid refresh token', HttpStatus.UNAUTHORIZED);
       }
@@ -1102,7 +1103,7 @@ export class AuthService implements OnModuleInit {
         throw new NotFoundException('User not found');
       }
 
-      // Delete Stripe account if exists
+      // First, delete Stripe account if exists
       if (user.customerStripeAccountId) {
         try {
           // First, delete all external accounts (bank accounts)
@@ -1120,27 +1121,31 @@ export class AuthService implements OnModuleInit {
 
           // Then delete the Stripe account
           await stripeInstance.accounts.del(user.customerStripeAccountId);
+          console.log('Stripe account deleted successfully');
         } catch (stripeError) {
           console.error('Error deleting Stripe account:', stripeError);
-          // Continue with deletion even if Stripe fails
+          throw new BadRequestException('Failed to delete Stripe account: ' + stripeError.message);
         }
       }
 
-      // Delete all events associated with the user
+      // After successful Stripe deletion, delete database records
       try {
+        // Delete all events associated with the user
         await this.usersService.removeUserEvents(user.id);
-      } catch (eventError) {
-        console.error('Error deleting user events:', eventError);
-        throw new BadRequestException('Failed to delete user events');
+        console.log('User events deleted successfully');
+
+        // Delete user from database
+        await this.usersService.remove(user.id);
+        console.log('User deleted from database successfully');
+
+        return {
+          message: 'Account and associated events deleted successfully',
+          status: HttpStatus.OK
+        };
+      } catch (dbError) {
+        console.error('Error deleting database records:', dbError);
+        throw new BadRequestException('Failed to delete database records: ' + dbError.message);
       }
-
-      // Delete user from database
-      await this.usersService.remove(user.id);
-
-      return {
-        message: 'Account and associated events deleted successfully',
-        status: HttpStatus.OK
-      };
     } catch (error) {
       console.error('Error in deleteAccountByEmail:', error);
       throw new HttpException(
