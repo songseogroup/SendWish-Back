@@ -111,6 +111,7 @@ export class PaymentService {
   ): Promise<{ message: string; status: number; data?: { id: string; client_secret: string; customer: string | null, application_fee_amount: number,amount:number } }> {
     try {
       // Check if the event exists in the database
+      console.log("customer_id",customer_id,eventId,gift_amount,gift_fee);
       const check_event = await this.eventRepository
         .createQueryBuilder('event')
         .leftJoinAndSelect('event.owner', 'user')
@@ -140,32 +141,30 @@ export class PaymentService {
         });
       }
   
-      // Calculate amounts
-      const giftAmountInCents = Math.round((gift_amount + gift_fee) * 100);
-      // console.log("giftAmountInCents",giftAmountInCents - 50);
-      // const platformFee = Math.round(giftAmountInCents * 0.07);
-  
-      // Create the payment intent
-      const sendGift = await this.my_stripe.paymentIntents.create({
-        amount: giftAmountInCents,
-        currency: 'AUD',
-        customer: customer_id || undefined,  // Pass undefined if customer_id is null
-        payment_method: paymentMethod.id,
-        confirm: true,
-        automatic_payment_methods: {
-          enabled: true,
-          allow_redirects: 'never',
-        },
-        transfer_data: {
-          destination: check_event.owner.customerStripeAccountId,
-        },
-        application_fee_amount: gift_fee,
-      });
+   const totalGiftAmount = gift_amount;
+const applicationFee = gift_fee;
+const amountToCharge = Math.round((totalGiftAmount + applicationFee) * 100);
+
+const sendGift = await this.my_stripe.paymentIntents.create({
+  amount: amountToCharge,
+  currency: 'AUD',
+  customer: customer_id || undefined,
+  payment_method: paymentMethod.id,
+  confirm: true,
+  automatic_payment_methods: {
+    enabled: true,
+    allow_redirects: 'never',
+  },
+  transfer_data: {
+    destination: check_event.owner.customerStripeAccountId,
+  },
+  application_fee_amount: Math.round(applicationFee * 100),
+});
   
       // Extract payment intent data to return
       const { client_secret, id, customer,application_fee_amount,amount } = sendGift;
       return {
-        message: 'Payment mointent created',
+        message: 'Payment intent created',
         status: 200,
         data: { id, client_secret, customer: customer || null , application_fee_amount,amount},  // Return null if customer is undefined
       };
