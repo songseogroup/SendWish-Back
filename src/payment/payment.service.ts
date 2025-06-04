@@ -110,73 +110,117 @@ export class PaymentService {
     gift_fee:number
   ): Promise<{ message: string; status: number; data?: { id: string; client_secret: string; customer: string | null, application_fee_amount: number,amount:number } }> {
     try {
+      // Input validation
+      if (!eventId || !gift_amount || !gift_fee) {
+        throw new Error('Missing required parameters: eventId, gift_amount, and gift_fee are required');
+      }
+
+      if (gift_amount <= 0 || gift_fee < 0) {
+        throw new Error('Invalid amounts: gift_amount must be positive and gift_fee must be non-negative');
+      }
+
       // Check if the event exists in the database
-      console.log("customer_id",customer_id,eventId,gift_amount,gift_fee);
+      console.log("[PaymentService] Creating payment intent for:", { customer_id, eventId, gift_amount, gift_fee });
+      
       const check_event = await this.eventRepository
         .createQueryBuilder('event')
         .leftJoinAndSelect('event.owner', 'user')
         .where('event.eid = :eventId', { eventId })
         .getOne();
   
-        if (!check_event) {
-          return { message: 'Error finding this event', status: HttpStatus.BAD_REQUEST };
-        }
+      if (!check_event) {
+        throw new Error(`Event not found with ID: ${eventId}`);
+      }
+
+      if (!check_event.owner?.customerStripeAccountId) {
+        throw new Error(`Event owner (ID: ${check_event.owner?.id}) does not have a valid Stripe account`);
+      }
   
       // Check if the event was created within the last 7 days
       const sevenDaysAgo = moment().subtract(7, 'days');
       const eventCreatedAt = moment(check_event.created_at, 'YYYY-MM-DD HH:mm:ss.SSSSSS');
       if (eventCreatedAt.isBefore(sevenDaysAgo)) {
-        return { message: 'Event is Expired', status: HttpStatus.BAD_REQUEST };
+        throw new Error(`Event (ID: ${eventId}) has expired. Created at: ${eventCreatedAt.format()}`);
       }
-      // Create a payment method (e.g., a one-time token)
-      const paymentMethod = await this.my_stripe.paymentMethods.create({
-        type: 'card',
-        card: { token: 'tok_visa' },  // Use a test token if customer_id is null
-      });
-  
-      // Attach the payment method if customer_id is provided
-      if (customer_id) {
-        await this.my_stripe.paymentMethods.attach(paymentMethod.id, {
-          customer: customer_id,
-        });
-      }
-  
-   const totalGiftAmount = gift_amount;
-const applicationFee = gift_fee;
-const amountToCharge = Math.round((totalGiftAmount + applicationFee) * 100);
 
-const sendGift = await this.my_stripe.paymentIntents.create({
-  amount: amountToCharge,
-  currency: 'AUD',
-  customer: customer_id || undefined,
-  payment_method: paymentMethod.id,
-  confirm: true,
-  automatic_payment_methods: {
-    enabled: true,
-    allow_redirects: 'never',
-  },
-  transfer_data: {
-    destination: check_event.owner.customerStripeAccountId,
-  },
-  application_fee_amount: Math.round(applicationFee * 100),
-});
-  
-      // Extract payment intent data to return
-      const { client_secret, id, customer,application_fee_amount,amount } = sendGift;
-      return {
-        message: 'Payment intent created',
-        status: 200,
-        data: { id, client_secret, customer: customer || null , application_fee_amount,amount},  // Return null if customer is undefined
-      };
-    } catch (e) {
-      console.error(e);  // Log the error for debugging
+      try {
+        // Create a payment method (e.g., a one-time token)
+        const paymentMethod = await this.my_stripe.paymentMethods.create({
+          type: 'card',
+          card: { token: 'tok_visa' },  // Use a test token if customer_id is null
+        });
+    
+        // Attach the payment method if customer_id is provided
+        if (customer_id) {
+          await this.my_stripe.paymentMethods.attach(paymentMethod.id, {
+            customer: customer_id,
+          });
+        }
+    
+        const totalGiftAmount = gift_amount;
+        const applicationFee = gift_fee;
+        const amountToCharge = Math.round((totalGiftAmount + applicationFee) * 100);
+
+        const sendGift = await this.my_stripe.paymentIntents.create({
+          amount: amountToCharge,
+          currency: 'AUD',
+          customer: customer_id || undefined,
+          payment_method: paymentMethod.id,
+          confirm: true,
+          automatic_payment_methods: {
+            enabled: true,
+            allow_redirects: 'never',
+          },
+          transfer_data: {
+            destination: check_event.owner.customerStripeAccountId,
+          },
+          application_fee_amount: Math.round(applicationFee * 100),
+        });
+    
+        // Extract payment intent data to return
+        const { client_secret, id, customer, application_fee_amount, amount } = sendGift;
+        return {
+          message: 'Payment intent created successfully',
+          status: 200,
+          data: { id, client_secret, customer: customer || null, application_fee_amount, amount },
+        };
+      } catch (stripeError) {
+        // Handle Stripe-specific errors
+        console.error('[PaymentService] Stripe API Error:', {
+          error: stripeError,
+          eventId,
+          customerId: customer_id,
+          amount: gift_amount,
+          fee: gift_fee
+        });
+        
+        throw new Error(`Stripe payment processing failed: ${stripeError.message}`);
+      }
+    } catch (error) {
+      // Log the full error details for debugging
+      console.error('[PaymentService] Payment Intent Creation Error:', {
+        error: error,
+        stack: error.stack,
+        eventId,
+        customerId: customer_id,
+        amount: gift_amount,
+        fee: gift_fee
+      });
+
+      // Throw a more detailed HTTP exception
       throw new HttpException(
         {
           status: HttpStatus.BAD_REQUEST,
-          error: e.message,
+          error: error.message,
+          details: {
+            eventId,
+            customerId: customer_id,
+            timestamp: new Date().toISOString(),
+            errorType: error.name || 'UnknownError'
+          }
         },
         HttpStatus.BAD_REQUEST,
-        { cause: e }
+        { cause: error }
       );
     }
   }
