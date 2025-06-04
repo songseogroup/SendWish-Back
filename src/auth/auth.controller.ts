@@ -382,14 +382,59 @@ export class AuthController {
    */
   @Post('login')
   @HttpCode(200)
-  @ApiResponse({ status: HttpStatus.OK, description: 'Loggedin' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Login successful' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid credentials or missing required fields' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Authentication failed' })
+  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal server error' })
   async create(@Body() userData: userDto) {
     try {
+      // Validate required fields
+      if (!userData.email || !userData.password) {
+        throw new BadRequestException('Email and password are required');
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(userData.email)) {
+        throw new BadRequestException('Invalid email format');
+      }
+
+      // Validate password length
+      if (userData.password.length < 6) {
+        throw new BadRequestException('Password must be at least 6 characters long');
+      }
+
       const userLogin = await this.authService.login(userData);
       return userLogin;
 
-    } catch (e) {
-      throw new HttpException(e.response.error, e.response.status)
+    } catch (error) {
+      // Handle different types of errors
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      if (error.response) {
+        // Handle service layer errors
+        throw new HttpException(
+          {
+            statusCode: error.response.status || HttpStatus.UNAUTHORIZED,
+            message: error.response.error || 'Authentication failed',
+            error: 'Unauthorized'
+          },
+          error.response.status || HttpStatus.UNAUTHORIZED
+        );
+      }
+
+      // Handle unexpected errors
+      console.error('Login error:', error);
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: 'An unexpected error occurred during login',
+          error: 'Internal Server Error'
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
   }
 
@@ -403,11 +448,19 @@ export class AuthController {
 
   @Post("update-password")
   @HttpCode(200)
+  @UseGuards(AuthGuard('jwt'))
   @ApiResponse({ status: HttpStatus.OK, description: 'Password updated'})
-  updatePassword(@Req() request:Request,@Body() updateAuthDto:UpdateAuthDto) {
-    const user = request['user'] as { userId: number };
-    const {userId,...other}=user;
-    return this.authService.updatePassword(userId, updateAuthDto);
+  async updatePassword(@Req() request: Request, @Body() updateAuthDto: UpdateAuthDto) {
+    try {
+      const user = request['user'] as { id: number };
+      console.log("user reset password",user);
+      if (!user || !user.id) {
+        throw new BadRequestException('User not found in request');
+      }
+      return await this.authService.updatePassword(user.id, updateAuthDto);
+    } catch (error) {
+      throw new BadRequestException(error.message || 'Failed to update password');
+    }
   }
 
 
