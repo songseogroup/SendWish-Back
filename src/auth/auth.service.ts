@@ -113,17 +113,24 @@ export class AuthService implements OnModuleInit {
           await this.mailerService.sendMail({
             to: userData.email,
             from: process.env.MY_EMAIL,
-            subject: 'Complete Your SendWish Verification',
-            text: 'Please complete your verification to access your account.',
+            subject: 'Your SendWish Account is Registered – KYC Pending',
+            text: 'Your registration is successful, but KYC verification is still pending.',
             html: `
-              <p>Thank you for updating your account information!</p>
-              <p>Please complete your verification by clicking the link below:</p>
-              <p><a href="${process.env.FRONTEND_URL || `https://sendwish.org/signup-verify/${accessToken}/${refreshToken}`}">Click here to verify your account</a></p>
-              <p>If you didn't request this, please ignore this email.</p>
-              <p>Your access token: ${accessToken}</p>
-              <p>Your refresh token: ${refreshToken}</p>
+              <p>🎉 <strong>Your SendWish account has been successfully registered.</strong></p>
+          
+              <p><strong>Important:</strong> Your KYC (Know Your Customer) verification is still pending. This step is necessary to fully activate your account.</p>
+          
+              <p>Please make sure the information you've provided is correct and matches your identity documents. If your information is incorrect or incomplete, your KYC will be rejected.</p>
+          
+              <p>You can update your KYC details by logging into your account within the next 24 hours.</p>
+          
+              <p><strong>Note:</strong> Without successful KYC verification, your application will remain inactive and unusable.</p>
+          
+              <p>If you believe you received this message by mistake, you can safely ignore it.</p>
             `,
           });
+          
+          
         } catch (emailError) {
           console.error('Error sending verification email:', emailError);
           // Continue even if email fails
