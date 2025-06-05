@@ -107,8 +107,8 @@ export class PaymentService {
     customer_id: string | null,  // customer_id can be null or omitted
     eventId: number,
     gift_amount: number,
-    gift_fee:number
-  ): Promise<{ message: string; status: number; data?: { id: string; client_secret: string; customer: string | null, application_fee_amount: number,amount:number } }> {
+    gift_fee: number
+  ): Promise<{ message: string; status: number; data?: { id: string; client_secret: string; customer: string | null, application_fee_amount: number, amount: number } }> {
     try {
       // Input validation
       if (!eventId || !gift_amount || !gift_fee) {
@@ -120,7 +120,7 @@ export class PaymentService {
       }
 
       // Check if the event exists in the database
-      console.log("[PaymentService] Creating payment intent for:", { customer_id, eventId, gift_amount, gift_fee });
+      console.log("[PaymentService] Creating payment intent for:", { eventId, gift_amount, gift_fee });
       
       const check_event = await this.eventRepository
         .createQueryBuilder('event')
@@ -143,66 +143,37 @@ export class PaymentService {
         throw new Error(`Event (ID: ${eventId}) has expired. Created at: ${eventCreatedAt.format()}`);
       }
 
-      try {
-        // Create a payment method (e.g., a one-time token)
-        const paymentMethod = await this.my_stripe.paymentMethods.create({
-          type: 'card',
-          card: { token: 'tok_visa' },  // Use a test token if customer_id is null
-        });
-    
-        // Attach the payment method if customer_id is provided
-        if (customer_id) {
-          await this.my_stripe.paymentMethods.attach(paymentMethod.id, {
-            customer: customer_id,
-          });
-        }
-    
-        const totalGiftAmount = gift_amount;
-        const applicationFee = gift_fee;
-        const amountToCharge = Math.round((totalGiftAmount + applicationFee) * 100);
+      // Calculate the total amount to charge (including the application fee)
+      const totalAmount = Math.round((gift_amount + gift_fee) * 100); // Convert to cents
+      const applicationFeeAmount = Math.round(gift_fee * 100); // Convert to cents
 
-        const sendGift = await this.my_stripe.paymentIntents.create({
-          amount: amountToCharge,
-          currency: 'AUD',
-          customer: customer_id || undefined,
-          payment_method: paymentMethod.id,
-          confirm: true,
-          automatic_payment_methods: {
-            enabled: true,
-            allow_redirects: 'never',
-          },
-          transfer_data: {
-            destination: check_event.owner.customerStripeAccountId,
-          },
-          application_fee_amount: Math.round(applicationFee * 100),
-        });
+      // Create a payment intent without attaching a customer
+      const paymentIntent = await this.my_stripe.paymentIntents.create({
+        amount: totalAmount,
+        currency: 'AUD',
+        automatic_payment_methods: {
+          enabled: true,
+          allow_redirects: 'never',
+        },
+        transfer_data: {
+          destination: check_event.owner.customerStripeAccountId,
+        },
+        application_fee_amount: applicationFeeAmount,
+      });
     
-        // Extract payment intent data to return
-        const { client_secret, id, customer, application_fee_amount, amount } = sendGift;
-        return {
-          message: 'Payment intent created successfully',
-          status: 200,
-          data: { id, client_secret, customer: customer || null, application_fee_amount, amount },
-        };
-      } catch (stripeError) {
-        // Handle Stripe-specific errors
-        console.error('[PaymentService] Stripe API Error:', {
-          error: stripeError,
-          eventId,
-          customerId: customer_id,
-          amount: gift_amount,
-          fee: gift_fee
-        });
-        
-        throw new Error(`Stripe payment processing failed: ${stripeError.message}`);
-      }
+      // Extract payment intent data to return
+      const { client_secret, id, customer, application_fee_amount, amount } = paymentIntent;
+      return {
+        message: 'Payment intent created successfully',
+        status: 200,
+        data: { id, client_secret, customer: customer || null, application_fee_amount, amount },
+      };
     } catch (error) {
       // Log the full error details for debugging
       console.error('[PaymentService] Payment Intent Creation Error:', {
         error: error,
         stack: error.stack,
         eventId,
-        customerId: customer_id,
         amount: gift_amount,
         fee: gift_fee
       });
@@ -214,7 +185,6 @@ export class PaymentService {
           error: error.message,
           details: {
             eventId,
-            customerId: customer_id,
             timestamp: new Date().toISOString(),
             errorType: error.name || 'UnknownError'
           }

@@ -115,24 +115,34 @@ export class EventsService {
 
   async createPaymentIntent(id: number, body: CreateGiftDto) {
     try {
-      // const { userId, gift_amount } = body;
+      const { gift_amount, gift_fee } = body;
 
-      const { gift_amount,gift_fee } = body;
-      // const getUserData = await this.usersService.findOne(userId);
+      // First get the event to ensure it exists
+      const event = await this.eventRepository.findOne({ where: { eid: id } });
+      if (!event) {
+        throw new Error('Event not found');
+      }
 
-      // if (!getUserData) {
+      // Get the event owner's user data
+      const user = await this.userRepository.findOne({ where: { id: event.owner.id } });
+      if (!user) {
+        throw new Error('Event owner not found');
+      }
 
-      //   throw new Error('User not found');
+      if (!user.customerStripeAccountId) {
+        throw new Error('Event owner does not have a valid Stripe account');
+      }
 
-      // }
-
-      const customerStripeId = null;
-
-      const createPayment = await this.paymentService.createPaymentIntent(customerStripeId, id, gift_amount,gift_fee);
-
+      // Create payment intent with transfer to event owner's connected account
+      // Pass null as customer_id to indicate this is an anonymous payment
+      const createPayment = await this.paymentService.createPaymentIntent(
+        null, // No customer ID for anonymous payments
+        id,
+        gift_amount,
+        gift_fee
+      );
+      
       return createPayment;
-
-
     }
     catch (e) {
       throw new HttpException({
@@ -140,7 +150,7 @@ export class EventsService {
         error: e.message,
       }, HttpStatus.BAD_REQUEST, {
         cause: e
-      });;
+      });
     }
   }
   async findOne(id: number): Promise<{

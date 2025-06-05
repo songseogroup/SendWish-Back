@@ -83,12 +83,52 @@ export class EventsController {
   @HttpCode(201)
   @ApiResponse({
     description: "Success",
-    type:  stripeIntentClass, 
+    type: stripeIntentClass, 
     status: 200
   })
-  async createPaymentIntent(@Param('id') id: number, @Req() request: Request,@Body () body:CreateGiftDto) {
-    
-    return this.eventsService.createPaymentIntent(id,body);
+  @ApiResponse({
+    description: "Bad Request - Invalid input data",
+    status: 400
+  })
+  @ApiResponse({
+    description: "Not Found - Event not found",
+    status: 404
+  })
+  @ApiResponse({
+    description: "Internal Server Error",
+    status: 500
+  })
+  async createPaymentIntent(@Param('id') id: number, @Req() request: Request, @Body() body: CreateGiftDto) {
+    try {
+      if (!id || id <= 0) {
+        throw new Error('Invalid event ID provided');
+      }
+
+      if (!body || !body.gift_amount || body.gift_amount <= 0) {
+        throw new Error('Invalid gift amount provided');
+      }
+
+      const result = await this.eventsService.createPaymentIntent(id, body);
+      
+      if (!result) {
+        throw new Error('Failed to create payment intent');
+      }
+
+      return result;
+    } catch (error) {
+      if (error.message === 'Invalid event ID provided') {
+        throw new Error('Invalid event ID: Please provide a valid event ID');
+      }
+      if (error.message === 'Invalid gift amount provided') {
+        throw new Error('Invalid gift amount: Please provide a valid amount greater than 0');
+      }
+      if (error.message === 'Failed to create payment intent') {
+        throw new Error('Payment intent creation failed: Please try again later');
+      }
+      // Log the error for debugging
+      console.error('Error in createPaymentIntent:', error);
+      throw new Error(`Payment processing error: ${error.message}`);
+    }
   }
 //   @Put('createPaymentIntent/:id')
 // @Roles(Role.User)

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber,IsOptional,IsString } from "class-validator";
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 
 export class CreateGiftDto {
@@ -11,12 +11,9 @@ export class CreateGiftDto {
   @IsNotEmpty()
   @IsNumber()
   gift_amount: number;
+  
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
   gift_fee: number;
- 
-  @ApiProperty()
-  @IsOptional()  // Expecting the Stripe customer ID as a string
-  customerStripeId: string | null;
-  }
+}
