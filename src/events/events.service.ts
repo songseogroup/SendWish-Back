@@ -118,7 +118,11 @@ export class EventsService {
       const { gift_amount, gift_fee } = body;
 
       // First get the event to ensure it exists
-      const event = await this.eventRepository.findOne({ where: { eid: id } });
+      const event = await this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoinAndSelect('event.owner', 'owner')
+        .where('event.eid = :id', { id })
+        .getOne();
       if (!event) {
         throw new Error('Event not found');
       }
