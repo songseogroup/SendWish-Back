@@ -35,7 +35,7 @@ describe('KYC Validation', () => {
         {
           provide: 'STRIPE_CLIENT',
           useValue: new Stripe(process.env.STRIPE_KEY, {
-            apiVersion: '2024-04-10',
+            apiVersion: '2023-10-16',
           }),
         },
       ],
@@ -65,7 +65,7 @@ describe('KYC Validation', () => {
       };
 
       await expect(
-        authService.customSignUp(registerDto, {})
+        authService.customSignUp(registerDto as any, {})
       ).rejects.toThrow('Document verification failed');
     });
 
@@ -78,7 +78,7 @@ describe('KYC Validation', () => {
       } as Express.Multer.File;
 
       await expect(
-        authService.customSignUp({} as any, {
+            authService.customSignUp({} as any, {
           front: [invalidFile],
           back: [invalidFile],
         })
@@ -120,7 +120,7 @@ describe('KYC Validation', () => {
       };
 
       await expect(
-        authService.customSignUp(registerDto, {
+        authService.customSignUp(registerDto as any, {
           front: [{} as Express.Multer.File],
           back: [{} as Express.Multer.File],
         })
@@ -144,7 +144,7 @@ describe('KYC Validation', () => {
       };
 
       await expect(
-        authService.customSignUp(registerDto, {
+        authService.customSignUp(registerDto as any, {
           front: [{} as Express.Multer.File],
           back: [{} as Express.Multer.File],
         })
@@ -170,7 +170,7 @@ describe('KYC Validation', () => {
       };
 
       await expect(
-        authService.customSignUp(registerDto, {
+        authService.customSignUp(registerDto as any, {
           front: [{} as Express.Multer.File],
           back: [{} as Express.Multer.File],
         })
@@ -196,7 +196,7 @@ describe('KYC Validation', () => {
       };
 
       await expect(
-        authService.customSignUp(registerDto, {
+        authService.customSignUp(registerDto as any, {
           front: [{} as Express.Multer.File],
           back: [{} as Express.Multer.File],
         })
@@ -241,11 +241,11 @@ describe('KYC Validation', () => {
         object: 'account',
       };
 
-      jest.spyOn(stripeInstance.accounts, 'create').mockResolvedValue(mockStripeAccount);
+      jest.spyOn(stripeInstance.accounts, 'create').mockResolvedValue(mockStripeAccount as any);
       jest.spyOn(stripeInstance.files, 'create').mockResolvedValue({ id: 'file_test123' } as any);
-      jest.spyOn(stripeInstance.accounts, 'update').mockResolvedValue(mockStripeAccount);
+      jest.spyOn(stripeInstance.accounts, 'update').mockResolvedValue(mockStripeAccount as any);
 
-      await authService.customSignUp(registerDto, mockFiles);
+      await authService.customSignUp(registerDto as any, mockFiles);
 
       expect(stripeInstance.accounts.create).toHaveBeenCalledWith(
         expect.objectContaining({

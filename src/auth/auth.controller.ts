@@ -102,17 +102,17 @@ export class AuthController {
         front: {
           type: 'string',
           format: 'binary',
-          description: 'Front side of ID document',
+          description: 'Front side of ID document (max 5MB)',
         },
         back: {
           type: 'string',
           format: 'binary',
-          description: 'Back side of ID document',
+          description: 'Back side of ID document (max 5MB)',
         },
         additional: {
           type: 'string',
           format: 'binary',
-          description: 'Additional verification document (optional)',
+          description: 'Additional verification document (optional, max 5MB)',
         },
         firstName: {
           type: 'string',
@@ -229,6 +229,18 @@ export class AuthController {
       if (!files?.front?.[0] || !files?.back?.[0]) {
         throw new BadRequestException('Front and back documents are required for KYC verification');
       }
+
+      // Validate file sizes
+      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      const validateFileSize = (file: Express.Multer.File) => {
+        if (file.size > maxSize) {
+          throw new BadRequestException(`File ${file.originalname} exceeds the maximum size limit of 5MB`);
+        }
+      };
+
+      if (files.front?.[0]) validateFileSize(files.front[0]);
+      if (files.back?.[0]) validateFileSize(files.back[0]);
+      if (files.additional?.[0]) validateFileSize(files.additional[0]);
 
       // Create a plain object with the proper shape of CreateUserDto
       const userData: Partial<CreateUserDto> = {
@@ -415,10 +427,11 @@ export class AuthController {
 
       if (error.response) {
         // Handle service layer errors
+        const errorMessage = error.response.error === 'Unauthorized' ? 'Incorrect password' : error.response.error;
         throw new HttpException(
           {
             statusCode: error.response.status || HttpStatus.UNAUTHORIZED,
-            message: error.response.error || 'Authentication failed',
+            message: errorMessage || 'Authentication failed',
             error: 'Unauthorized'
           },
           error.response.status || HttpStatus.UNAUTHORIZED
@@ -557,17 +570,17 @@ export class AuthController {
         front: {
           type: 'string',
           format: 'binary',
-          description: 'Front side of ID document',
+          description: 'Front side of ID document (max 5MB)',
         },
         back: {
           type: 'string',
           format: 'binary',
-          description: 'Back side of ID document',
+          description: 'Back side of ID document (max 5MB)',
         },
         additional: {
           type: 'string',
           format: 'binary',
-          description: 'Additional verification document (optional)',
+          description: 'Additional verification document (optional, max 5MB)',
         },
         firstName: {
           type: 'string',
@@ -657,6 +670,18 @@ export class AuthController {
       if (!user) {
         throw new BadRequestException('User not found');
       }
+
+      // Validate file sizes
+      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      const validateFileSize = (file: Express.Multer.File) => {
+        if (file.size > maxSize) {
+          throw new BadRequestException(`File ${file.originalname} exceeds the maximum size limit of 5MB`);
+        }
+      };
+
+      if (files.front?.[0]) validateFileSize(files.front[0]);
+      if (files.back?.[0]) validateFileSize(files.back[0]);
+      if (files.additional?.[0]) validateFileSize(files.additional[0]);
 
       // Create a plain object with the proper shape of CreateUserDto
       const userData: Partial<CreateUserDto> = {
