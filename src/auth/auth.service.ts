@@ -195,7 +195,7 @@ export class AuthService implements OnModuleInit {
 
       // Validate document formats
       const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      const maxSize = 50 * 1024 * 1024; // 5MB
 
       const validateFile = (file: Express.Multer.File) => {
         if (!allowedTypes.includes(file.mimetype)) {

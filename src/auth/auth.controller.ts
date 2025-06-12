@@ -203,7 +203,7 @@ export class AuthController {
         cb(null, true);
       },
       limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB max file size
+        fileSize: 50 * 1024 * 1024 // 5MB max file size
       }
     })
   )
@@ -231,7 +231,7 @@ export class AuthController {
       }
 
       // Validate file sizes
-      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      const maxSize = 50 * 1024 * 1024; // 5MB in bytes
       const validateFileSize = (file: Express.Multer.File) => {
         if (file.size > maxSize) {
           throw new BadRequestException(`File ${file.originalname} exceeds the maximum size limit of 5MB`);
@@ -656,7 +656,7 @@ export class AuthController {
         cb(null, true);
       },
       limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB max file size
+        fileSize: 50 * 1024 * 1024 // 5MB max file size
       }
     })
   )
@@ -683,7 +683,7 @@ export class AuthController {
       }
 
       // Validate file sizes
-      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      const maxSize = 50 * 1024 * 1024; // 5MB in bytes
       const validateFileSize = (file: Express.Multer.File) => {
         if (file.size > maxSize) {
           throw new BadRequestException(`File ${file.originalname} exceeds the maximum size limit of 5MB`);

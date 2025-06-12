@@ -8,8 +8,8 @@ import {
   
   // * Sizes will be in MB here
   
-  const IMG_MAX_SIZE = 5;
-  const PDF_MAX_SIZE = 8;
+  const IMG_MAX_SIZE = 50;
+  const PDF_MAX_SIZE = 50;
   
   @Injectable()
   export class ParseFilePipeCutsom implements PipeTransform {
