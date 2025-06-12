@@ -586,7 +586,11 @@ export class AuthService implements OnModuleInit {
 
       const isPasswordValid = await bcrypt.compare(userData.password, user.password);
       if (!isPasswordValid) {
-        throw new HttpException('Incorrect credentials', HttpStatus.UNAUTHORIZED);
+        throw new HttpException({
+          status: HttpStatus.UNAUTHORIZED,
+          error: 'Incorrect credentials',
+          message: 'The password you entered is incorrect'
+        }, HttpStatus.UNAUTHORIZED);
       }
 
       // Generate tokens with consistent payload structure
@@ -630,7 +634,8 @@ export class AuthService implements OnModuleInit {
       throw new HttpException(
         {
           status: HttpStatus.UNAUTHORIZED,
-          error: 'Authentication failed'
+          error: 'Authentication failed',
+          message: 'An error occurred during authentication'
         },
         HttpStatus.UNAUTHORIZED
       );

@@ -396,7 +396,7 @@ export class AuthController {
   @HttpCode(200)
   @ApiResponse({ status: HttpStatus.OK, description: 'Login successful' })
   @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid credentials or missing required fields' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Authentication failed' })
+  // @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Authentication failed' })
   @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal server error' })
   async create(@Body() userData: userDto) {
     try {
@@ -424,14 +424,25 @@ export class AuthController {
       if (error instanceof BadRequestException) {
         throw error;
       }
+      console.log("error",error);
+      // Check if it's an authentication error
+      if (error.message === 'Invalid credentials' || error.message === 'Unauthorized') {
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.UNAUTHORIZED,
+            message: 'Incorrect password',
+            error: 'Unauthorized'
+          },
+          HttpStatus.UNAUTHORIZED
+        );
+      }
 
       if (error.response) {
         // Handle service layer errors
-        const errorMessage = error.response.error === 'Unauthorized' ? 'Incorrect password' : error.response.error;
         throw new HttpException(
           {
             statusCode: error.response.status || HttpStatus.UNAUTHORIZED,
-            message: errorMessage || 'Authentication failed',
+            message: error.response.error || 'Authentication failed',
             error: 'Unauthorized'
           },
           error.response.status || HttpStatus.UNAUTHORIZED
