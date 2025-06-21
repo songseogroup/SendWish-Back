@@ -198,7 +198,8 @@ export class AuthController {
       fileFilter: (req, file, cb) => {
         // Accept images and PDFs
         if (!file.originalname.match(/\.(jpg|jpeg|png|pdf)$/)) {
-          return cb(new Error('Only image and PDF files are allowed!'), false);
+          // Use BadRequestException for proper NestJS error handling
+          return cb(new BadRequestException('Only image and PDF files are allowed!'), false);
         }
         cb(null, true);
       },
@@ -650,8 +651,10 @@ export class AuthController {
         },
       }),
       fileFilter: (req, file, cb) => {
+        // Accept images and PDFs
         if (!file.originalname.match(/\.(jpg|jpeg|png|pdf)$/)) {
-          return cb(new Error('Only image and PDF files are allowed!'), false);
+          // Use BadRequestException for proper NestJS error handling
+          return cb(new BadRequestException('Only image and PDF files are allowed!'), false);
         }
         cb(null, true);
       },

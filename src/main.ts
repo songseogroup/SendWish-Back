@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import * as express from 'express';
 import { json, urlencoded } from 'express';
+import { MulterExceptionFilter } from './common/multer-exception.filter';
 
 async function bootstrap() {
   
@@ -17,6 +18,7 @@ async function bootstrap() {
   app.use(urlencoded({ extended: true, limit: '50mb' }));
   
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  app.useGlobalFilters(new MulterExceptionFilter());
   const config = new DocumentBuilder()
   .setTitle('Wishful')
   .setDescription('The Wishful API description')
