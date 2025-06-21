@@ -263,8 +263,8 @@ export class AuthService implements OnModuleInit {
       // Validate phone number (Australian format)
       // const auPhoneRegex = /^(\+?61|0)4\d{8}$/;
       const auPhoneRegex = /^(?:\+?61|0)4\d{8}$/;
-
-      if (!auPhoneRegex.test(registerUserDto.phoneNumber)) {
+      const phone = registerUserDto.phoneNumber.trim();
+      if (!auPhoneRegex.test(phone)) {
         throw new BadRequestException({
           message: 'Invalid Australian phone number',
           details: {
