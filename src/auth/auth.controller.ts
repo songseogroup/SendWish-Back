@@ -49,6 +49,10 @@ interface CustomJwtPayload extends JwtPayload {
   userId?: number;
 }
 
+// Define allowed extensions and max file size as constants
+const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.pdf'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
 @Controller('auth')
 @UseInterceptors(ClassSerializerInterceptor)
 export class AuthController {
@@ -191,20 +195,29 @@ export class AuthController {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-          cb(null, `${file.fieldname}-${uniqueSuffix}-${file.originalname}`);
+          const timestamp = Date.now();
+          cb(null, `${file.fieldname}-${timestamp}-${file.originalname}`);
         },
       }),
       fileFilter: (req, file, cb) => {
-        // Accept images and PDFs
-        if (!file.originalname.match(/\.(jpg|jpeg|png|pdf)$/)) {
-          // Use BadRequestException for proper NestJS error handling
-          return cb(new BadRequestException('Only image and PDF files are allowed!'), false);
+        const ext = (file.originalname.match(/\.[^.]+$/) || [''])[0].toLowerCase();
+        if (!ALLOWED_EXTENSIONS.includes(ext)) {
+          return cb(
+            new BadRequestException({
+              statusCode: 400,
+              message: `Invalid file extension "${ext}" in file "${file.originalname}". Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`,
+              error: 'Bad Request',
+              fileName: file.originalname,
+              invalidExtension: ext,
+              allowedExtensions: ALLOWED_EXTENSIONS,
+            }),
+            false
+          );
         }
         cb(null, true);
       },
       limits: {
-        fileSize: 50 * 1024 * 1024 // 5MB max file size
+        fileSize: MAX_FILE_SIZE // 5MB max file size
       }
     })
   )
@@ -646,20 +659,29 @@ export class AuthController {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-          cb(null, `${file.fieldname}-${uniqueSuffix}-${file.originalname}`);
+          const timestamp = Date.now();
+          cb(null, `${file.fieldname}-${timestamp}-${file.originalname}`);
         },
       }),
       fileFilter: (req, file, cb) => {
-        // Accept images and PDFs
-        if (!file.originalname.match(/\.(jpg|jpeg|png|pdf)$/)) {
-          // Use BadRequestException for proper NestJS error handling
-          return cb(new BadRequestException('Only image and PDF files are allowed!'), false);
+        const ext = (file.originalname.match(/\.[^.]+$/) || [''])[0].toLowerCase();
+        if (!ALLOWED_EXTENSIONS.includes(ext)) {
+          return cb(
+            new BadRequestException({
+              statusCode: 400,
+              message: `Invalid file extension "${ext}" in file "${file.originalname}". Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`,
+              error: 'Bad Request',
+              fileName: file.originalname,
+              invalidExtension: ext,
+              allowedExtensions: ALLOWED_EXTENSIONS,
+            }),
+            false
+          );
         }
         cb(null, true);
       },
       limits: {
-        fileSize: 50 * 1024 * 1024 // 5MB max file size
+        fileSize: MAX_FILE_SIZE // 5MB max file size
       }
     })
   )
