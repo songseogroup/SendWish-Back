@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, Req, ClassSerializerInterceptor, UseInterceptors, Put,UploadedFiles, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, Req, ClassSerializerInterceptor, UseInterceptors, Put,UploadedFiles, UploadedFile, Res, HttpException } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
@@ -98,7 +98,7 @@ export class EventsController {
     description: "Internal Server Error",
     status: 500
   })
-  async createPaymentIntent(@Param('id') id: number, @Req() request: Request, @Body() body: CreateGiftDto) {
+  async createPaymentIntent(@Param('id') id: number, @Req() request: Request, @Body() body: CreateGiftDto, @Res() res) {
     try {
       if (!id || id <= 0) {
         throw new Error('Invalid event ID provided');
@@ -114,20 +114,26 @@ export class EventsController {
         throw new Error('Failed to create payment intent');
       }
 
-      return result;
+      return res.status(200).json(result);
     } catch (error) {
+      if (error instanceof HttpException) {
+        if (error.getStatus() === 410) {
+          return res.status(410).json({ error: 'Event is expired' });
+        }
+        return res.status(error.getStatus()).json({ error: error.message });
+      }
       if (error.message === 'Invalid event ID provided') {
-        throw new Error('Invalid event ID: Please provide a valid event ID');
+        return res.status(400).json({ error: 'Invalid event ID: Please provide a valid event ID' });
       }
       if (error.message === 'Invalid gift amount provided') {
-        throw new Error('Invalid gift amount: Please provide a valid amount greater than 0');
+        return res.status(400).json({ error: 'Invalid gift amount: Please provide a valid amount greater than 0' });
       }
       if (error.message === 'Failed to create payment intent') {
-        throw new Error('Payment intent creation failed: Please try again later');
+        return res.status(500).json({ error: 'Payment intent creation failed: Please try again later' });
       }
       // Log the error for debugging
       console.error('Error in createPaymentIntent:', error);
-      throw new Error(`Payment processing error: ${error.message}`);
+      return res.status(500).json({ error: `Payment processing error: ${error.message}` });
     }
   }
 //   @Put('createPaymentIntent/:id')

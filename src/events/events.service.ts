@@ -149,6 +149,9 @@ export class EventsService {
       return createPayment;
     }
     catch (e) {
+      if (e instanceof HttpException && e.getStatus() === 410) {
+        throw e;
+      }
       throw new HttpException({
         status: HttpStatus.BAD_REQUEST,
         error: e.message,

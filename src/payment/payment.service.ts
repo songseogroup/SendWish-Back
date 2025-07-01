@@ -140,7 +140,7 @@ export class PaymentService {
       const sevenDaysAgo = moment().subtract(7, 'days');
       const eventCreatedAt = moment(check_event.created_at, 'YYYY-MM-DD HH:mm:ss.SSSSSS');
       if (eventCreatedAt.isBefore(sevenDaysAgo)) {
-        throw new Error(`Event (ID: ${eventId}) has expired. Created at: ${eventCreatedAt.format()}`);
+        throw new HttpException('Event is expired', HttpStatus.GONE);
       }
 
       // Calculate the total amount to charge (including the application fee)
@@ -179,15 +179,13 @@ export class PaymentService {
       });
 
       // Throw a more detailed HTTP exception
+      if (error instanceof HttpException && error.getStatus() === HttpStatus.GONE) {
+        throw error;
+      }
       throw new HttpException(
         {
           status: HttpStatus.BAD_REQUEST,
           error: error.message,
-          details: {
-            eventId,
-            timestamp: new Date().toISOString(),
-            errorType: error.name || 'UnknownError'
-          }
         },
         HttpStatus.BAD_REQUEST,
         { cause: error }
