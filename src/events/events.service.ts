@@ -217,6 +217,12 @@ export class EventsService {
         throw new Error('User id cannot be changed');
       }
 
+      // Preserve existing image if no new image is provided
+      const imageToUpdate = updateEventDto.image;
+      if (!imageToUpdate) {
+        delete updateEventDto.image; // Remove image from updateDto to preserve existing image
+      }
+
       // Update the event with the new data
       Object.assign(event, updateEventDto);
 
