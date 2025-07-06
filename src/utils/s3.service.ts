@@ -60,8 +60,8 @@ export class S3Service {
 
       return getUrl;
     } catch (e) {
-      console.log('EERORR', e);
-      return e;
+      console.error('Error generating signed URL:', e);
+      throw new Error('Failed to generate signed URL for image');
     }
   }
 }

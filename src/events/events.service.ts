@@ -222,6 +222,22 @@ export class EventsService {
 
       // Save the updated event back to the database
       const updated_event = await this.eventRepository.save(event);
+      
+      // Generate signed URL for the image before returning
+      if (updated_event.image) {
+        try {
+          updated_event.image = await this.s3Service.generateSignedUrl(updated_event.image);
+        } catch (error) {
+          console.error('Error generating signed URL for image:', error);
+          // If we can't generate a signed URL, we could either:
+          // 1. Set image to null/empty string
+          // 2. Keep the original key
+          // 3. Return a default image URL
+          // For now, let's keep the original key to avoid breaking the response
+          // updated_event.image = null;
+        }
+      }
+      
       return {
         message: "Success",
         data: updated_event,
