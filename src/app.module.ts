@@ -2,7 +2,7 @@ const dotenvExpand = require('dotenv-expand');
 export const myENV = require('dotenv').config();
 const parse = require('pg-connection-string').parse;
 export const myvalue = dotenvExpand.expand(myENV).parsed;
-export const connectionOptions = parse(process.env.POSTGRES_URL);
+export const connectionOptions = process.env.POSTGRES_URL ? parse(process.env.POSTGRES_URL) : null;
 import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';

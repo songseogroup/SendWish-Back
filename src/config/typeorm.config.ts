@@ -1,12 +1,13 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { myvalue,connectionOptions } from 'src/app.module';
 
-const databaseUsername =myvalue.DB_USER_NAME;
-const databasePassword =myvalue.DB_PASSWORD;
-const databaseName =myvalue.DB_NAME;
-const databaseHost =myvalue.DB_HOST;
-const databasePort = myvalue.DB_PORT;
-const databaseType=myvalue.DB_TYPE;
+const databaseUsername =myvalue?.DB_USER_NAME;
+const databasePassword =myvalue?.DB_PASSWORD;
+const databaseName =myvalue?.DB_NAME;
+const databaseHost =myvalue?.DB_HOST;
+const databasePort = myvalue?.DB_PORT;
+// Default to 'postgres' if DB_TYPE is not set, since we're parsing POSTGRES_URL
+const databaseType = myvalue?.DB_TYPE || process.env.DB_TYPE || 'postgres';
 
 console.log(connectionOptions)
 console.log(myvalue)
@@ -18,13 +19,13 @@ console.log(myvalue)
 // database: databaseName||connectionOptions.database,
 
 export const typeOrmConfig: TypeOrmModuleOptions = {
-  type: databaseType,
-  host:connectionOptions.host,
-  port:connectionOptions.port,
-  username:connectionOptions.user,
-  password: connectionOptions.password,
-  database: connectionOptions.database,
-  ssl: require,
+  type: databaseType as any,
+  host: connectionOptions?.host || databaseHost,
+  port: connectionOptions?.port || databasePort || 5432,
+  username: connectionOptions?.user || databaseUsername,
+  password: connectionOptions?.password || databasePassword,
+  database: connectionOptions?.database || databaseName,
+  ssl: connectionOptions?.ssl || (process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false),
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   synchronize: true,
   

@@ -60,6 +60,54 @@ $ npm run test:cov
  
 this is a simple gift sending backend that we ise to send a gift with an event
 
+## Cloudinary Setup (Image Storage)
+
+This backend uses Cloudinary for image storage - a free, no-credit-card-required solution perfect for getting started!
+
+### Required Environment Variables
+
+Set these environment variables in your Railway deployment or `.env` file:
+
+```bash
+# Cloudinary Configuration
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+```
+
+### How to Get Cloudinary Credentials (No Credit Card Required!)
+
+1. **Sign Up for Free**: Go to [cloudinary.com](https://cloudinary.com/users/register/free) and create a free account
+   - **No credit card required** for the free tier!
+   - Free tier includes: 25 GB storage, 25 GB bandwidth/month
+
+2. **Get Your Credentials**:
+   - After signing up, go to your [Dashboard](https://console.cloudinary.com/)
+   - You'll see your credentials displayed:
+     - **Cloud Name** (e.g., `dxyz123abc`)
+     - **API Key** (e.g., `123456789012345`)
+     - **API Secret** (e.g., `abcdefghijklmnopqrstuvwxyz123456`)
+
+3. **Copy to Environment Variables**:
+   - In Railway, add these three environment variables
+   - Or add them to your `.env` file for local development
+
+### Free Tier Benefits
+
+- ✅ **25 GB storage** - Plenty for images
+- ✅ **25 GB bandwidth/month** - Good for moderate traffic
+- ✅ **No credit card required** - Sign up and start using immediately
+- ✅ **Automatic image optimization** - Cloudinary optimizes images automatically
+- ✅ **CDN included** - Fast global delivery
+- ✅ **Image transformations** - Resize, crop, format conversion on-the-fly
+
+### How It Works
+
+- Images are uploaded to Cloudinary and stored with a unique `public_id`
+- The service automatically generates public URLs for your images
+- URLs are HTTPS and served via Cloudinary's global CDN
+- Images are organized in a `sendwish` folder automatically
+
 ## Stay in touch
 
 - Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
