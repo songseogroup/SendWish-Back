@@ -49,7 +49,7 @@ export class S3Service {
       // The public_id is what we stored, so we can generate the URL directly
       const url = cloudinary.url(publicId.toString(), {
         secure: true, // Use HTTPS
-        resource_type: 'auto', // Auto-detect resource type
+        resource_type: 'image', // Must be 'image' so the URL path is /image/upload/ (browsers reject /auto/upload/)
       });
 
       return url;
