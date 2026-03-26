@@ -23,6 +23,11 @@ const stripeOptions = {
 };
 let stripeInstance = require('stripe')(process.env.STRIPE_KEY, stripeOptions);
 
+const maskStripeSecrets = (message: string = ''): string =>
+  message
+    .replace(/sk_(live|test)_[A-Za-z0-9]+/g, 'sk_****')
+    .replace(/pk_(live|test)_[A-Za-z0-9]+/g, 'pk_****');
+
 @Injectable()
 export class AuthService implements OnModuleInit {
   constructor(
@@ -36,8 +41,6 @@ export class AuthService implements OnModuleInit {
     // Ensure Stripe is properly initialized when the module starts
     if (!process.env.STRIPE_KEY) {
       console.error('STRIPE_KEY environment variable is not set!');
-    } else {
-      console.log('Stripe initialized with API key:', process.env.STRIPE_KEY.substring(0, 8) + '...');
     }
   }
 
@@ -48,8 +51,6 @@ export class AuthService implements OnModuleInit {
 
   async verify(token: string) {
     try {
-      console.log(process.env.STRIPE_KEY);
-      console.log(process.env.STRIPE_TEST_KEY);
       const verify = jwt.verify(token, process.env.SECRET_KEY) as { email: string, id: number };
       const email = verify.email;
       let userData = await this.usersService.findByEmail(email);
@@ -391,7 +392,11 @@ export class AuthService implements OnModuleInit {
         console.log('Stripe bank account attached:', bankAccountResponse);
       } catch (bankError) {
         console.error('Error attaching bank account to Stripe:', bankError);
-        throw new BadRequestException('Failed to attach bank account to Stripe: ' + (bankError.message || bankError));
+        const safeBankErrorMessage = maskStripeSecrets(bankError?.message || '');
+        throw new BadRequestException(
+          safeBankErrorMessage ||
+            'Unable to attach bank account right now. Please verify account details and try again.',
+        );
       }
 
       // Upload documents to Stripe
@@ -571,7 +576,8 @@ export class AuthService implements OnModuleInit {
         }
       }
       
-      throw new BadRequestException(error.message || 'Failed to create user');
+      const safeMessage = maskStripeSecrets(error?.message || '');
+      throw new BadRequestException(safeMessage || 'Failed to create user');
     }
   }
   
